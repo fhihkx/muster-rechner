@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>White-Label Finanzierungsrechner Demo</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PURE jsPDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- EmailJS Library -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            // HIER DEINEN EMAILJS PUBLIC KEY EINTRAGEN
+            emailjs.init("DEIN_EMAILJS_PUBLIC_KEY");
+        })();
+    </script>
+    
+    <!-- Fonts: Moderne, cleane Standard-Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#032659',       // Tiefes, edles Blau
+                            primaryHover: '#021A3E',  
+                            dark: '#334155',          // Schiefergrau
+                            darkHover: '#1E293B',
+                            text: '#334155',
+                            light: '#F8FAFC',
+                            border: '#E2E8F0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+                        heading: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'card': '0 30px 60px -15px rgba(15, 23, 42, 0.08)',
+                        'glow': '0 0 40px rgba(3, 38, 89, 0.4)',
+                        'inner-light': 'inset 0 1px 0 rgba(255,255,255,0.1)'
+                    },
+                    transitionProperty: {
+                        'height': 'height, max-height',
+                        'spacing': 'margin, padding',
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'number-pop': 'numberPop 0.25s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        numberPop: {
+                            '0%': { transform: 'scale(1)' },
+                            '40%': { transform: 'scale(1.03)' },
+                            '100%': { transform: 'scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #F8FAFC; color: #334155; overflow-x: hidden; }
+        h1, h2, h3, h4, .font-heading { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; letter-spacing: -0.02em; }
+
+        /* Navigation Style */
+        .nav-item {
+            font-weight: 600;
+            font-size: 14px;
+            color: #334155;
+            letter-spacing: 0.02em; 
+            transition: color 0.3s ease;
+        }
+        .nav-item:hover { color: #032659; }
+
+        /* Tab Buttons - Solider, klarer Kontrast ohne Glas-Effekt */
+        .tab-nav {
+            background: #ffffff;
+            padding: 8px; 
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(3, 38, 89, 0.1);
+            border: 1px solid #E2E8F0;
+            display: inline-flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px; 
+        }
+        .tab-btn {
+            padding: 16px 48px; 
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px; 
+            color: #64748B;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background: #032659;
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(3, 38, 89, 0.25);
+            transform: translateY(-2px);
+        }
+        .tab-btn:hover:not(.active) {
+            color: #032659;
+            background: #EFF6FF;
+        }
+
+        /* Calculator Specifics - Premium Inputs */
+        .calc-input-wrapper {
+            background: #F8FAFC;
+            border: 2px solid transparent; 
+            border-bottom: 2px solid #E2E8F0; 
+            border-radius: 8px 8px 0 0; 
+            padding: 12px 20px; /* Dynamisches Padding statt fester Höhe verhindert Abschneiden */
+            min-height: 54px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+        }
+        .calc-input-wrapper:focus-within {
+            background: #fff;
+            border-bottom-color: #032659;
+            box-shadow: 0 10px 30px -10px rgba(3, 38, 89, 0.1);
+            transform: translateY(-2px);
+        }
+        .calc-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-weight: 700;
+            color: #0F172A;
+            font-size: 18px; 
+            padding: 0;
+            margin: 0;
+            line-height: normal;
+        }
+        
+        /* HIDE INPUT SPINNERS (Arrows) */
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+
+        .calc-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94A3B8;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.1em; 
+        }
+
+        /* Form Inputs (Step 2) */
+        .form-input {
+            width: 100%;
+            background-color: #F8FAFC;
+            border: 2px solid transparent;
+            border-bottom: 2px solid #E2E8F0;
+            border-radius: 8px 8px 0 0;
+            padding: 12px 16px;
+            font-weight: 500;
+            color: #0F172A;
+            outline: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .form-input:focus {
+            background-color: #fff;
+            border-bottom-color: #032659;
+            box-shadow: 0 10px 30px -10px rgba(3, 38, 89, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* Container Height Transition */
+        #content-container {
+            transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Helper for Step Transitions within Calculator */
+        .step-transition {
+            transition: opacity 0.4s ease-in-out;
+        }
+        .hidden-step {
+            display: none !important;
+        }
+        .active-step {
+            display: flex !important;
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        /* Custom Delay Classes for Staggered Animation */
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 640px) {
+            .tab-btn { padding: 14px 28px; font-size: 14px; width: 100%; }
+            .tab-nav { border-radius: 10px; width: 100%; }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- DEMO CTA BANNER -->
+    <div class="bg-brand-primary text-white text-center py-3 px-4 text-xs md:text-sm font-medium tracking-wider shadow-inner flex items-center justify-center gap-3 relative z-[60] uppercase">
+        <span class="flex h-5 w-5 relative">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
+            <span class="relative inline-flex rounded-full h-5 w-5 bg-white text-brand-primary items-center justify-center text-xs"><i class="fa-solid fa-info"></i></span>
+        </span>
+        <span><strong>White-Label Demo:</strong> Vollständig anpassbar an Ihr Corporate Design</span>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white sticky top-0 z-50 border-b border-gray-100 transition-all duration-300 shadow-sm">
+        <div class="max-w-[1400px] mx-auto px-6 md:px-8 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-3 group shrink-0 select-none opacity-0 animate-fade-in-up">
+                <div class="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-brand-primary flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition-transform duration-500">
+                    <i class="fa-solid fa-shapes text-lg md:text-xl"></i>
+                </div>
+                <div class="text-xl md:text-2xl tracking-tighter flex items-baseline">
+                    <span class="font-black text-brand-primary">MUSTER</span>
+                    <span class="font-light text-slate-500">LOGO</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-6 opacity-0 animate-fade-in-up delay-100">
+                <!-- Premium Kontakt Button -->
+                <a href="#" onclick="alert('In der Live-Version führt dieser Button zu Ihrer Kontaktseite.'); return false;" class="bg-brand-primary text-white px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase hover:bg-transparent hover:text-brand-primary hover:shadow-[inset_0_0_0_2px_#032659] transition-all duration-300 shadow-md whitespace-nowrap">
+                    Kontakt aufnehmen
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="pt-24 pb-12 px-6 text-center relative overflow-hidden">
+        <h1 class="text-5xl md:text-6xl lg:text-7xl font-black text-brand-dark mb-6 tracking-tighter opacity-0 animate-fade-in-up delay-100">
+            Ihr individueller <br><span class="text-brand-primary inline-block mt-2">Finanzierungsrechner</span>
+        </h1>
+        <p class="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto font-light leading-relaxed opacity-0 animate-fade-in-up delay-200">
+            Bieten Sie Ihren Kunden transparente Finanzierungsmöglichkeiten direkt auf Ihrer Website. Schnell, sicher und anpassbar.
+        </p>
+    </section>
+
+    <!-- MAIN APP AREA -->
+    <main class="w-full max-w-6xl mx-auto px-4 md:px-6 pb-32 relative z-10">
+        
+        <!-- Tab Navigation -->
+        <div class="flex justify-center mb-16 opacity-0 animate-fade-in-up delay-300">
+            <div class="tab-nav">
+                <button onclick="switchTab('calculator')" id="tab-calculator" class="tab-btn active">Rechner-Demo</button>
+                <button onclick="switchTab('why')" id="tab-why" class="tab-btn">Beispiel: Vorteile</button>
+            </div>
+        </div>
+
+        <!-- CONTENT CONTAINER (Dynamic Height) -->
+        <div id="content-container" class="relative w-full overflow-visible opacity-0 animate-fade-in-up delay-400">
+            
+            <!-- VIEW 1: CALCULATOR -->
+            <div id="view-calculator" class="view-content absolute inset-x-0 top-0 w-full opacity-100 transition-all duration-700 ease-in-out z-10">
+                <!-- Premium Card -->
+                <div class="bg-white rounded-3xl shadow-card overflow-hidden border border-slate-100/50 relative group">
+                    
+                    <!-- STEP 1: CALCULATION -->
+                    <div id="calc-step-1" class="flex flex-col lg:flex-row w-full active-step step-transition">
+                        <!-- Linke Seite (Formular) -->
+                        <div class="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-start">
+                            <div class="flex items-center justify-between mb-8 h-10">
+                                <h2 class="text-3xl lg:text-4xl font-black text-brand-primary tracking-tight m-0">Konditionen berechnen</h2>
+                            </div>
+
+                            <div class="space-y-8 w-full">
+                                <div>
+                                    <label class="calc-label">Anschaffungspreis (Netto)</label>
+                                    <div class="calc-input-wrapper">
+                                        <span class="text-slate-300 font-light mr-4 text-2xl">€</span>
+                                        <input type="text" id="price" class="calc-input text-2xl" placeholder="0,00" inputmode="decimal" oninput="formatPriceInput(this)">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                    <div>
+                                        <label class="calc-label">Laufzeit</label>
+                                        <div class="calc-input-wrapper relative">
+                                            <select id="duration" class="calc-input text-xl appearance-none cursor-pointer bg-transparent w-full pr-8" onchange="updateResidualOptions()">
+                                                <option value="" disabled selected>Bitte wählen</option>
+                                                <option value="36">36 Monate</option>
+                                                <option value="48">48 Monate</option>
+                                                <option value="54">54 Monate</option>
+                                                <option value="60">60 Monate</option>
+                                            </select>
+                                            <div class="absolute right-5 text-brand-primary pointer-events-none">
+                                                <i class="fa-solid fa-chevron-down text-sm"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="calc-label">Restwert</label>
+                                        <div class="calc-input-wrapper relative">
+                                            <select id="residual" class="calc-input text-xl appearance-none cursor-pointer bg-transparent w-full pr-8">
+                                                <option value="" disabled selected>Bitte wählen</option>
+                                                <option value="5">5 %</option>
+                                                <option value="10">10 %</option>
+                                                <option value="15">15 %</option>
+                                            </select>
+                                            <div class="absolute right-5 text-brand-primary pointer-events-none">
+                                                <i class="fa-solid fa-chevron-down text-sm"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="pt-4">
+                                    <button onclick="calculate()" class="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:bg-brand-primaryHover transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(3,38,89,0.5)] hover:shadow-[0_15px_30px_-10px_rgba(3,38,89,0.6)] hover:-translate-y-1 flex justify-center items-center gap-3">
+                                        Rate berechnen 
+                                        <i class="fa-solid fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
+                                    </button>
+                                </div>
+
+                                <div id="error-msg" class="hidden p-4 rounded-lg bg-red-50 border border-red-100 flex items-start md:items-center gap-4 text-red-600 text-sm font-medium">
+                                    <i class="fa-solid fa-circle-exclamation text-xl mt-0.5 md:mt-0"></i>
+                                    <span id="error-text">Diese Kombination ist aktuell nicht verfügbar.</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rechte Seite (Ergebnis - Flat & Solid Design) -->
+                        <div class="w-full lg:w-5/12 bg-brand-dark p-8 md:p-12 lg:p-16 text-white flex flex-col justify-start relative">
+                            
+                            <div class="relative z-10 flex flex-col h-full">
+                                <div class="flex items-center mb-8 h-10">
+                                    <!-- Solider Badge ohne Glas-Effekt -->
+                                    <div class="inline-block px-5 py-2 rounded-full bg-slate-700 border border-slate-600 text-[10px] font-bold tracking-widest text-white m-0 uppercase">
+                                        Unverbindliches Angebot
+                                    </div>
+                                </div>
+
+                                <div class="space-y-8 w-full flex-grow flex flex-col">
+                                    <div class="pt-4">
+                                        <div class="text-[12px] font-bold tracking-[0.15em] uppercase text-slate-400 mb-4">Monatliche Rate</div>
+                                        <div class="flex items-baseline gap-2">
+                                            <div class="text-6xl md:text-7xl font-black tracking-tighter break-words text-white leading-none origin-left inline-block" id="result-display">0,00</div>
+                                            <div class="text-3xl font-light text-slate-400">€</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 gap-6 pt-8 mt-8 border-t border-slate-700">
+                                        <div>
+                                            <div class="text-[12px] font-bold tracking-[0.1em] uppercase text-slate-500 mb-2">Hinweis</div>
+                                            <div class="text-[12px] text-slate-400 leading-relaxed font-light">
+                                                *Alle Preise zzgl. gesetzlicher MwSt. vorbehaltlich positiver Bonitätsprüfung durch unsere Finanzierungspartner.
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-auto self-end pt-12">
+                                    <button onclick="goToStep(2)" id="btn-next" class="w-16 h-16 bg-white text-brand-primary rounded-full flex items-center justify-center text-2xl hover:bg-slate-100 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.1)] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-white disabled:shadow-none" disabled>
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STEP 2: CONTACT FORM -->
+                    <div id="calc-step-2" class="hidden-step flex-col lg:flex-row w-full step-transition">
+                        <!-- Linke Seite (Formular - Kompakter gemacht) -->
+                        <div class="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-start">
+                            <div class="flex items-center mb-4 h-10">
+                                <h2 class="text-3xl lg:text-4xl font-black text-brand-primary m-0 tracking-tight">Ihre Kontaktdaten</h2>
+                            </div>
+                            <p class="text-slate-500 mb-8 text-base font-light">Bitte geben Sie Ihre Daten ein, um das unverbindliche Muster-Angebot als PDF zu erhalten.</p>
+
+                            <!-- Reduzierte Abstände (space-y-4) für ein kompakteres Formular -->
+                            <form class="space-y-4 w-full" id="contact-form" onsubmit="event.preventDefault(); downloadOfferPDF();">
+                                <div>
+                                    <label class="calc-label">Finanzierungsart</label>
+                                    <div class="relative">
+                                        <select id="form-finanzierungsart" class="form-input appearance-none cursor-pointer pr-8 bg-transparent border-b-2" required>
+                                            <option value="" disabled selected>Wählen</option>
+                                            <option value="Leasing">Leasing</option>
+                                            <option value="Mietkauf">Mietkauf</option>
+                                        </select>
+                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none">
+                                            <i class="fa-solid fa-chevron-down text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="calc-label">Anrede</label>
+                                    <div class="relative">
+                                        <select id="form-anrede" class="form-input appearance-none cursor-pointer pr-8 bg-transparent border-b-2" required>
+                                            <option value="" disabled selected>Wählen</option>
+                                            <option value="Frau">Frau</option>
+                                            <option value="Herr">Herr</option>
+                                        </select>
+                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none">
+                                            <i class="fa-solid fa-chevron-down text-sm"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="calc-label">Vorname</label>
+                                        <input type="text" id="form-vorname" class="form-input bg-transparent border-b-2" required>
+                                    </div>
+                                    <div>
+                                        <label class="calc-label">Nachname</label>
+                                        <input type="text" id="form-nachname" class="form-input bg-transparent border-b-2" required>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="calc-label">Firmenname</label>
+                                    <input type="text" id="form-firma" class="form-input bg-transparent border-b-2" required>
+                                </div>
+
+                                <div>
+                                    <label class="calc-label">Adresse & Hausnummer</label>
+                                    <input type="text" id="form-strasse" class="form-input bg-transparent border-b-2" required>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="col-span-1">
+                                        <label class="calc-label">Postleitzahl</label>
+                                        <input type="text" id="form-plz" class="form-input bg-transparent border-b-2" required>
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="calc-label">Ort</label>
+                                        <input type="text" id="form-ort" class="form-input bg-transparent border-b-2" required>
+                                    </div>
+                                </div>
+
+                                <div class="pt-6">
+                                    <button type="submit" id="submit-btn" class="w-full bg-brand-primary text-white font-bold py-4 rounded-xl text-sm uppercase tracking-widest hover:bg-brand-primaryHover transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(3,38,89,0.5)] hover:shadow-[0_15px_30px_-10px_rgba(3,38,89,0.6)] hover:-translate-y-1 flex justify-center items-center gap-3">
+                                        <span>PDF-Angebot generieren</span>
+                                        <i class="fa-solid fa-file-pdf"></i>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Rechte Seite (Zusammenfassung - Solid Design) -->
+                        <div class="w-full lg:w-5/12 bg-brand-dark p-8 md:p-12 lg:p-16 text-white flex flex-col justify-start relative">
+                            <div class="relative z-10 flex flex-col h-full">
+                                <div class="flex items-center mb-8 h-10">
+                                    <h3 class="font-black tracking-tight text-3xl m-0">Zusammenfassung</h3>
+                                </div>
+                                
+                                <div class="space-y-5 text-sm flex-grow font-light">
+                                    <div class="flex justify-between border-b border-slate-700 pb-4">
+                                        <span class="text-slate-400">Anschaffungspreis</span>
+                                        <span class="font-bold text-white tracking-wide" id="summary-price">0,00 €</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-4">
+                                        <span class="text-slate-400">Laufzeit</span>
+                                        <span class="font-bold text-white tracking-wide"><span id="summary-duration">0</span> Monate</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-4">
+                                        <span class="text-slate-400">Anzahlung</span>
+                                        <span class="font-bold text-white tracking-wide">0,00 €</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-4">
+                                        <span class="text-slate-400">Restwert</span>
+                                        <span class="font-bold text-white tracking-wide" id="summary-residual-euro">0,00 €</span>
+                                    </div>
+                                    <div class="flex justify-between border-b border-slate-700 pb-4">
+                                        <span class="text-slate-400">Leasingfaktor</span>
+                                        <span class="font-bold text-white tracking-wide" id="summary-leasing-factor">0,00 %</span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-12">
+                                    <div class="text-slate-400 text-[11px] font-bold tracking-[0.15em] uppercase mb-4">Monatliche Rate</div>
+                                    <div class="flex items-baseline gap-2">
+                                        <div class="text-5xl lg:text-6xl font-black tracking-tighter text-white" id="summary-rate">0,00</div>
+                                        <div class="text-2xl font-light text-slate-400">€</div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-10">
+                                    <button onclick="goToStep(1)" class="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-3 transition-colors tracking-widest uppercase">
+                                        <i class="fa-solid fa-arrow-left"></i> Angaben ändern
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- VIEW 2: BENEFITS -->
+            <div id="view-why" class="view-content absolute inset-x-0 top-0 w-full opacity-0 pointer-events-none transition-all duration-700 ease-in-out z-10">
+                <div class="bg-white rounded-3xl shadow-card p-8 md:p-16 lg:p-24 border border-slate-100 flex flex-col justify-center">
+                    <div class="text-center mb-20">
+                        <h2 class="text-4xl md:text-5xl font-black text-brand-dark mb-6 tracking-tight">Ihre Vorteile im Überblick</h2>
+                        <p class="text-slate-500 text-xl font-light max-w-2xl mx-auto">Präsentieren Sie hier die starken Argumente für Ihre Produkte.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                        <div class="p-10 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-brand-primary/30 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group">
+                            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand-primary text-2xl shadow-md mb-8 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-500">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <h3 class="font-bold text-2xl mb-4 text-brand-dark tracking-tight">Liquidität schonen</h3>
+                            <p class="text-base text-slate-500 font-light leading-relaxed">Erklären Sie, wie der Kunde durch bequeme Ratenzahlung sein Eigenkapital behält und finanziell flexibel bleibt.</p>
+                        </div>
+                        <div class="p-10 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-brand-primary/30 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group">
+                            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand-primary text-2xl shadow-md mb-8 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-500">
+                                <i class="fa-solid fa-chart-line"></i>
+                            </div>
+                            <h3 class="font-bold text-2xl mb-4 text-brand-dark tracking-tight">Sichere Planung</h3>
+                            <p class="text-base text-slate-500 font-light leading-relaxed">Erwähnen Sie die konstanten, festen Raten, die über die gesamte Laufzeit eine einfache Budgetplanung ermöglichen.</p>
+                        </div>
+                        <div class="p-10 rounded-2xl bg-slate-50/50 border border-slate-100 hover:border-brand-primary/30 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group">
+                            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-brand-primary text-2xl shadow-md mb-8 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-500">
+                                <i class="fa-solid fa-rocket"></i>
+                            </div>
+                            <h3 class="font-bold text-2xl mb-4 text-brand-dark tracking-tight">Modernste Technik</h3>
+                            <p class="text-base text-slate-500 font-light leading-relaxed">Zeigen Sie auf, dass Kunden durch smarte Finanzierung immer Zugang zu Ihren neuesten Innovationen haben.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-16 mt-auto relative z-20">
+        <div class="max-w-[1400px] mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-10 items-center">
+            
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center gap-3 select-none">
+                    <div class="w-8 h-8 rounded-md bg-brand-primary flex items-center justify-center text-white shadow-sm">
+                        <i class="fa-solid fa-shapes text-sm"></i>
+                    </div>
+                    <div class="text-xl tracking-tighter flex items-baseline">
+                        <span class="font-black text-brand-primary">MUSTER</span>
+                        <span class="font-light text-slate-500">LOGO</span>
+                    </div>
+                </div>
+                <p class="text-slate-400 text-sm font-light">Ein Muster-Unternehmen für Demonstrationszwecke.</p>
+            </div>
+            
+            <div class="flex justify-start md:justify-center text-slate-400 text-sm font-light">
+                <p>&copy; 2026 Musterfirma GmbH</p>
+            </div>
+
+            <div class="flex justify-start md:justify-end gap-8 text-sm font-medium text-slate-500">
+                <a href="#" class="hover:text-brand-primary transition-colors">Impressum</a>
+                <a href="#" class="hover:text-brand-primary transition-colors">Datenschutz</a>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- LOGIC -->
+    <script>
+        const factors = {
+            "15": { "36": 2.78, "48": 2.15, "54": 1.94, "60": null },
+            "10": { "36": 2.90, "48": 2.25, "54": 2.03, "60": null },
+            "5":  { "36": null, "48": 2.34, "54": 2.11, "60": 1.92 }
+        };
+
+        window.addEventListener('load', () => {
+            switchTab('calculator');
+        });
+
+        window.addEventListener('resize', () => {
+            const activeBtn = document.querySelector('.tab-btn.active');
+            if(activeBtn) {
+                const id = activeBtn.id.replace('tab-', '');
+                adjustContainerHeight(id);
+            }
+        });
+
+        function adjustContainerHeight(tabId) {
+            const container = document.getElementById('content-container');
+            const activeView = document.getElementById('view-' + tabId);
+            if(activeView) {
+                container.style.height = activeView.offsetHeight + 'px';
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if(btn.id === 'tab-' + tabId) btn.classList.add('active');
+            });
+
+            document.querySelectorAll('.view-content').forEach(view => {
+                view.style.opacity = '0';
+                view.style.pointerEvents = 'none';
+                view.style.zIndex = '0';
+                view.style.transform = 'translateY(20px)';
+            });
+
+            const activeView = document.getElementById('view-' + tabId);
+            if(activeView) {
+                setTimeout(() => {
+                    activeView.style.opacity = '1';
+                    activeView.style.pointerEvents = 'auto';
+                    activeView.style.zIndex = '10';
+                    activeView.style.transform = 'translateY(0)';
+                }, 50);
+                setTimeout(() => adjustContainerHeight(tabId), 10);
+            }
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+        }
+
+        function formatPriceInput(input) {
+            let val = input.value.replace(/\./g, '');
+            val = val.replace(/[^\d,]/g, '');
+            let parts = val.split(',');
+            if (parts.length > 2) {
+                parts = [parts[0], parts.slice(1).join('')];
+            }
+            let integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            if (parts.length > 1) {
+                input.value = integerPart + ',' + parts[1].substring(0, 2); 
+            } else {
+                input.value = integerPart;
+            }
+        }
+
+        function updateResidualOptions() {
+            const duration = document.getElementById('duration').value;
+            const residualSelect = document.getElementById('residual');
+            const options = residualSelect.options;
+
+            for (let i = 0; i < options.length; i++) {
+                const val = options[i].value;
+                
+                options[i].hidden = false;
+                options[i].disabled = false;
+                options[i].style.display = '';
+                
+                if (duration === "60" && (val === "10" || val === "15")) {
+                    options[i].hidden = true;
+                    options[i].disabled = true;
+                    options[i].style.display = 'none'; 
+                } else if (duration === "36" && val === "5") {
+                    options[i].hidden = true;
+                    options[i].disabled = true;
+                    options[i].style.display = 'none'; 
+                }
+            }
+
+            if (duration === "60" && (residualSelect.value === "10" || residualSelect.value === "15")) {
+                residualSelect.value = "5";
+            } else if (duration === "36" && residualSelect.value === "5") {
+                residualSelect.value = "10";
+            }
+        }
+
+        // NEU: Hilfsfunktion für den weichen "Count-Up" Effekt der Zahlen
+        function animateNumber(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // EaseOutQuart für ein weiches, langsameres Auslaufen der Animation
+                const easeOutProgress = 1 - Math.pow(1 - progress, 4);
+                const currentVal = start + (end - start) * easeOutProgress;
+                
+                element.innerText = formatCurrency(currentVal);
+                
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    element.innerText = formatCurrency(end); // Setze exakten Endwert am Schluss
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function calculate() {
+            const priceInput = document.getElementById('price').value;
+            const duration = document.getElementById('duration').value;
+            const residual = document.getElementById('residual').value;
+            
+            const resultDisplay = document.getElementById('result-display');
+            const errorMsg = document.getElementById('error-msg');
+            const errorText = document.getElementById('error-text');
+            const nextBtn = document.getElementById('btn-next');
+
+            const price = parseFloat(priceInput.replace(/\./g, '').replace(',', '.'));
+
+            if (!duration || !residual) return;
+
+            const factor = factors?.[residual]?.[duration] ?? null;
+
+            if (factor === null) {
+                resultDisplay.innerText = "—";
+                errorText.innerText = `Diese Kombination (${duration} Monate / ${residual}%) ist aktuell nicht verfügbar.`;
+                errorMsg.classList.remove('hidden');
+                nextBtn.disabled = true;
+            } else {
+                errorMsg.classList.add('hidden');
+                if (price && price > 0) {
+                    const rate = price * (factor / 100);
+                    
+                    // Aktuellen Wert auslesen, um von diesem hoch- oder runterzuzählen
+                    const currentText = resultDisplay.innerText.replace(/\./g, '').replace(',', '.');
+                    const startRate = parseFloat(currentText) || 0;
+                    
+                    // Pop-Animation triggern (kurzes Aufblähen der Zahl)
+                    resultDisplay.classList.remove('animate-number-pop');
+                    void resultDisplay.offsetWidth; // Reflow erzwingen, um die Animation neuzustarten
+                    resultDisplay.classList.add('animate-number-pop');
+                    
+                    // Count-Up Animation starten (Dauer: 400ms statt 1000ms für knackiges Feedback)
+                    animateNumber(resultDisplay, startRate, rate, 400);
+                    
+                    nextBtn.disabled = false;
+                } else {
+                    resultDisplay.innerText = "0,00";
+                    nextBtn.disabled = true;
+                }
+            }
+        }
+
+        function goToStep(step) {
+            const step1 = document.getElementById('calc-step-1');
+            const step2 = document.getElementById('calc-step-2');
+
+            if (step === 2) {
+                const priceStr = document.getElementById('price').value || "0";
+                const durationVal = document.getElementById('duration').value;
+                const residualVal = document.getElementById('residual').value;
+                const rateVal = document.getElementById('result-display').innerText;
+
+                const price = parseFloat(priceStr.replace(/\./g, '').replace(',', '.')) || 0;
+                const residualEuro = price * (parseFloat(residualVal) / 100);
+                const factor = factors[residualVal]?.[durationVal];
+                
+                const formatFactor = (f) => f ? f.toString().replace('.', ',') + ' %' : '- %';
+                const formattedPrice = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price);
+
+                document.getElementById('summary-price').innerText = formattedPrice + ' €';
+                document.getElementById('summary-duration').innerText = durationVal;
+                document.getElementById('summary-residual-euro').innerText = formatCurrency(residualEuro) + ' €';
+                document.getElementById('summary-leasing-factor').innerText = formatFactor(factor);
+                document.getElementById('summary-rate').innerText = rateVal;
+
+                // Sofortiger Wechsel ohne Lücke in der Höhe
+                step1.classList.remove('active-step');
+                step1.classList.add('hidden-step');
+                
+                step2.classList.remove('hidden-step');
+                step2.classList.add('active-step');
+                
+                adjustContainerHeight('calculator');
+                
+            } else {
+                // Sofortiger Wechsel zurück
+                step2.classList.remove('active-step');
+                step2.classList.add('hidden-step');
+
+                step1.classList.remove('hidden-step');
+                step1.classList.add('active-step');
+                
+                adjustContainerHeight('calculator');
+            }
+        }
+
+        // Generiert vollautomatisch ein schickes Platzhalter-Logo als Base64 Bild für das PDF
+        function generateGenericLogo() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 300;
+            canvas.height = 80;
+            const ctx = canvas.getContext('2d');
+            
+            // Icon Background (Blau)
+            ctx.fillStyle = '#032659'; 
+            ctx.beginPath();
+            ctx.roundRect(0, 15, 50, 50, 12);
+            ctx.fill();
+
+            // Icon Inner Detail (Weißer Kreis als abstrakte Form)
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(25, 40, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Text MUSTER
+            ctx.fillStyle = '#032659';
+            ctx.font = '900 34px Helvetica, Arial, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('MUSTER', 65, 43);
+
+            // Text LOGO
+            ctx.fillStyle = '#64748B';
+            ctx.font = '300 34px Helvetica, Arial, sans-serif';
+            ctx.fillText('LOGO', 215, 43);
+
+            return { data: canvas.toDataURL('image/png'), w: 300, h: 80 };
+        }
+
+        async function downloadOfferPDF() {
+            const btn = document.getElementById('submit-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>Angebot wird erstellt...</span> <i class="fa-solid fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+                const art = document.getElementById('form-finanzierungsart').value;
+                const anrede = document.getElementById('form-anrede').value;
+                const vorname = document.getElementById('form-vorname').value;
+                const nachname = document.getElementById('form-nachname').value;
+                const firma = document.getElementById('form-firma').value;
+                const strasse = document.getElementById('form-strasse').value;
+                const plz = document.getElementById('form-plz').value;
+                const ort = document.getElementById('form-ort').value;
+
+                let salutation = anrede === "Frau" ? `Sehr geehrte Frau ${nachname},` :
+                                 anrede === "Herr" ? `Sehr geehrter Herr ${nachname},` :
+                                 `Guten Tag ${vorname} ${nachname},`;
+
+                const date = new Date();
+                const datum = ('0' + date.getDate()).slice(-2) + '.' + ('0' + (date.getMonth() + 1)).slice(-2) + '.' + date.getFullYear();
+
+                const preisVal = document.getElementById('summary-price').textContent.replace('€', '').trim();
+                const laufzeitVal = document.getElementById('summary-duration').textContent.replace('Monate', '').trim();
+                const restwertEuroVal = document.getElementById('summary-residual-euro').textContent.replace('€', '').trim();
+                let leasingfaktorVal = document.getElementById('summary-leasing-factor').textContent.trim();
+                const rateVal = document.getElementById('summary-rate').textContent.replace('€', '').trim();
+
+                const logo = generateGenericLogo();
+                const maxW = 45; const maxH = 12;
+                let imgW = maxW;
+                let imgH = (logo.h * maxW) / logo.w;
+                doc.addImage(logo.data, 'PNG', 190 - imgW, 20, imgW, imgH); 
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text([firma, `${anrede} ${vorname} ${nachname}`, strasse, `${plz} ${ort}`], 20, 45);
+
+                doc.text(`Datum: ${datum}`, 190, 60, { align: "right" });
+
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text(`Finanzierungsangebot: ${art}`, 20, 80);
+
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(salutation, 20, 95);
+                doc.text("vielen Dank für das entgegengebrachte Vertrauen! Wie folgt bieten wir Ihnen unverbindlich an:", 20, 105);
+
+                let y = 120;
+                const rowH = 7;
+                const drawRow = (label, val, unit) => {
+                    doc.setFont("helvetica", "normal");
+                    doc.text(label, 40, y);
+                    doc.setFont("helvetica", "bold");
+                    doc.text(val, 110, y, { align: "right" });
+                    doc.setFont("helvetica", "normal");
+                    if (unit) doc.text(unit, 112, y);
+                    y += rowH;
+                };
+
+                drawRow("Anschaffungspreis:", preisVal, "€");
+                drawRow("Laufzeit:", laufzeitVal, "Monate");
+                drawRow("Mietsonderzahlung:", "0,00", "€");
+                drawRow("Monatliche Rate:", rateVal, "€");
+                const hasPercent = leasingfaktorVal.includes('%');
+                drawRow("Rate in %:", hasPercent ? leasingfaktorVal.replace('%','').trim() : leasingfaktorVal, "%");
+                drawRow("kalk. Restwert:", restwertEuroVal, "€");
+
+                y += 10;
+                if (art === "Mietkauf") {
+                    doc.setFont("helvetica", "bold");
+                    doc.text("Hinweis: Die gesetzl. Mehrwertsteuer fällt vorab auf die Summe aller Zahlungen an.", 20, y);
+                    y += 10;
+                }
+
+                doc.setFont("helvetica", "normal");
+                doc.text("Die oben genannten Preise verstehen sich netto, zuzüglich der gesetzlichen Mehrwertsteuer.", 20, y);
+                y += 15;
+
+                doc.text(["Wir freuen uns, für Sie tätig werden zu können und sichern Ihnen bereits jetzt eine faire, schnelle", 
+                          "und unbürokratische Abwicklung zu."], 20, y);
+                
+                y += 20;
+                doc.text("Mit freundlichen Grüßen,", 20, y);
+                y += 10;
+                doc.setFont("helvetica", "bold");
+                doc.text("Musterfirma GmbH", 20, y); 
+
+                doc.setDrawColor(200, 200, 200);
+                doc.setLineWidth(0.2);
+                doc.line(20, 270, 190, 270);
+
+                doc.setFontSize(5.5);
+                doc.setFont("helvetica", "normal");
+
+                doc.text(["Musterfirma GmbH", "Musterstraße 1", "12345 Musterstadt"], 20, 274);
+                doc.text(["Geschäftsführer: Max Mustermann", "Amtsgericht Musterstadt HRB 12345", "Ust-IdNr. DE 123456789"], 46, 274);
+                doc.text(["Fon (+49) 123 / 456-789", "info@musterfirma.de", "www.musterfirma.de"], 86, 274);
+                
+                doc.text(["Musterbank 1", "Musterbank 2"], 118, 274);
+                doc.text(["IBAN DE55 2151 0800 1000 6859 59", "IBAN DE33 2004 0000 0630 1527 00"], 136, 274);
+                doc.text(["MBANKDE22", "MBANKDEFF"], 190, 274, { align: "right" });
+
+                const firmaClean = firma.replace(/[^a-zA-Z0-9]/g, '_');
+                const filename = `MusterAngebot_${art}_${firmaClean}.pdf`;
+                
+                doc.save(filename);
+
+                const templateParams = {
+                    firma_name: firma,
+                    kontakt_name: `${anrede} ${vorname} ${nachname}`,
+                    adresse: strasse,
+                    plz_ort: `${plz} ${ort}`,
+                    finanzierungsart: art,
+                    anschaffungspreis: preisVal,
+                    laufzeit: laufzeitVal,
+                    rate: rateVal,
+                    leasingfaktor: leasingfaktorVal,
+                    restwert: restwertEuroVal
+                };
+
+                try {
+                    await emailjs.send("DEINE_SERVICE_ID", "DEINE_TEMPLATE_ID", templateParams);
+                    console.log("E-Mail Alert erfolgreich versendet.");
+                } catch (emailError) {
+                    console.warn("Muster: EmailJS nicht konfiguriert oder Fehler aufgetreten.", emailError);
+                }
+
+            } catch (error) {
+                console.error("Fehler bei der PDF Generierung:", error);
+                alert("Es ist ein Fehler bei der PDF-Generierung aufgetreten. Überprüfen Sie die Konsole.");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
