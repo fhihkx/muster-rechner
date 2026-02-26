@@ -10,15 +10,6 @@
     <!-- PURE jsPDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
-    <!-- EmailJS Library -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function() {
-            // HIER DEINEN EMAILJS PUBLIC KEY EINTRAGEN
-            emailjs.init("DEIN_EMAILJS_PUBLIC_KEY");
-        })();
-    </script>
-    
     <!-- Fonts: Moderne, cleane Standard-Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -84,7 +75,7 @@
         }
         .nav-item:hover { color: #032659; }
 
-        /* Tab Buttons - Solider, klarer Kontrast ohne Glas-Effekt */
+        /* Tab Buttons - Solider, klarer Kontrast */
         .tab-nav {
             background: #ffffff;
             padding: 8px; 
@@ -116,23 +107,18 @@
             background: #EFF6FF;
         }
 
-        /* Calculator Specifics - Premium Inputs */
+        /* Calculator Specifics - Premium Line Inputs (Kein grauer Hintergrund mehr) */
         .calc-input-wrapper {
-            background: #F8FAFC;
-            border: 2px solid transparent; 
+            background: transparent;
             border-bottom: 2px solid #E2E8F0; 
-            border-radius: 8px 8px 0 0; 
-            padding: 12px 20px; /* Dynamisches Padding statt fester Höhe verhindert Abschneiden */
-            min-height: 54px;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 10px 0; 
+            min-height: 50px;
+            transition: border-color 0.3s ease;
             display: flex;
             align-items: center;
         }
         .calc-input-wrapper:focus-within {
-            background: #fff;
             border-bottom-color: #032659;
-            box-shadow: 0 10px 30px -10px rgba(3, 38, 89, 0.1);
-            transform: translateY(-2px);
         }
         .calc-input {
             width: 100%;
@@ -141,7 +127,7 @@
             outline: none;
             font-weight: 700;
             color: #0F172A;
-            font-size: 18px; 
+            font-size: 20px; 
             padding: 0;
             margin: 0;
             line-height: normal;
@@ -161,30 +147,27 @@
             font-size: 11px;
             font-weight: 700;
             color: #94A3B8;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             display: block;
             text-transform: uppercase;
             letter-spacing: 0.1em; 
         }
 
-        /* Form Inputs (Step 2) */
+        /* Form Inputs (Step 2) - Identisch zum Calculator Design */
         .form-input {
             width: 100%;
-            background-color: #F8FAFC;
-            border: 2px solid transparent;
+            background-color: transparent;
+            border: none;
             border-bottom: 2px solid #E2E8F0;
-            border-radius: 8px 8px 0 0;
-            padding: 12px 16px;
-            font-weight: 500;
+            padding: 10px 0;
+            font-weight: 600;
+            font-size: 16px;
             color: #0F172A;
             outline: none;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: border-color 0.3s ease;
         }
         .form-input:focus {
-            background-color: #fff;
             border-bottom-color: #032659;
-            box-shadow: 0 10px 30px -10px rgba(3, 38, 89, 0.1);
-            transform: translateY(-2px);
         }
 
         /* Container Height Transition */
@@ -241,8 +224,7 @@
                 </div>
             </div>
             <div class="flex items-center gap-6 opacity-0 animate-fade-in-up delay-100">
-                <!-- Premium Kontakt Button -->
-                <a href="#" onclick="alert('In der Live-Version führt dieser Button zu Ihrer Kontaktseite.'); return false;" class="bg-brand-primary text-white px-8 py-3 rounded-full text-sm font-bold tracking-widest uppercase hover:bg-transparent hover:text-brand-primary hover:shadow-[inset_0_0_0_2px_#032659] transition-all duration-300 shadow-md whitespace-nowrap">
+                <a href="#" onclick="alert('In der Live-Version führt dieser Button zu Ihrer Kontaktseite.'); return false;" class="bg-brand-primary text-white px-8 py-3 rounded-xl text-sm font-bold tracking-widest uppercase hover:bg-transparent hover:text-brand-primary hover:shadow-[inset_0_0_0_2px_#032659] transition-all duration-300 shadow-md whitespace-nowrap">
                     Kontakt aufnehmen
                 </a>
             </div>
@@ -282,31 +264,31 @@
                     <div id="calc-step-1" class="flex flex-col lg:flex-row w-full active-step step-transition">
                         <!-- Linke Seite (Formular) -->
                         <div class="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-start">
-                            <div class="flex items-center justify-between mb-8 h-10">
-                                <h2 class="text-3xl lg:text-4xl font-black text-brand-primary tracking-tight m-0">Konditionen berechnen</h2>
+                            <div class="flex items-center justify-between mb-10 h-10">
+                                <h2 class="text-3xl lg:text-4xl font-black text-brand-primary tracking-tight m-0">Finanzierung berechnen</h2>
                             </div>
 
-                            <div class="space-y-8 w-full">
+                            <div class="space-y-10 w-full">
                                 <div>
                                     <label class="calc-label">Anschaffungspreis (Netto)</label>
                                     <div class="calc-input-wrapper">
-                                        <span class="text-slate-300 font-light mr-4 text-2xl">€</span>
+                                        <span class="text-slate-300 font-light mr-3 text-2xl">€</span>
                                         <input type="text" id="price" class="calc-input text-2xl" placeholder="0,00" inputmode="decimal" oninput="formatPriceInput(this)">
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-10">
                                     <div>
                                         <label class="calc-label">Laufzeit</label>
                                         <div class="calc-input-wrapper relative">
-                                            <select id="duration" class="calc-input text-xl appearance-none cursor-pointer bg-transparent w-full pr-8" onchange="updateResidualOptions()">
+                                            <select id="duration" class="calc-input appearance-none cursor-pointer bg-transparent w-full pr-8" onchange="updateResidualOptions()">
                                                 <option value="" disabled selected>Bitte wählen</option>
                                                 <option value="36">36 Monate</option>
                                                 <option value="48">48 Monate</option>
                                                 <option value="54">54 Monate</option>
                                                 <option value="60">60 Monate</option>
                                             </select>
-                                            <div class="absolute right-5 text-brand-primary pointer-events-none">
+                                            <div class="absolute right-2 text-brand-primary pointer-events-none">
                                                 <i class="fa-solid fa-chevron-down text-sm"></i>
                                             </div>
                                         </div>
@@ -315,20 +297,20 @@
                                     <div>
                                         <label class="calc-label">Restwert</label>
                                         <div class="calc-input-wrapper relative">
-                                            <select id="residual" class="calc-input text-xl appearance-none cursor-pointer bg-transparent w-full pr-8">
+                                            <select id="residual" class="calc-input appearance-none cursor-pointer bg-transparent w-full pr-8">
                                                 <option value="" disabled selected>Bitte wählen</option>
                                                 <option value="5">5 %</option>
                                                 <option value="10">10 %</option>
                                                 <option value="15">15 %</option>
                                             </select>
-                                            <div class="absolute right-5 text-brand-primary pointer-events-none">
+                                            <div class="absolute right-2 text-brand-primary pointer-events-none">
                                                 <i class="fa-solid fa-chevron-down text-sm"></i>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="pt-4">
+                                <div class="pt-6">
                                     <button onclick="calculate()" class="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-sm uppercase tracking-widest hover:bg-brand-primaryHover transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(3,38,89,0.5)] hover:shadow-[0_15px_30px_-10px_rgba(3,38,89,0.6)] hover:-translate-y-1 flex justify-center items-center gap-3">
                                         Rate berechnen 
                                         <i class="fa-solid fa-arrow-right ml-2 transition-transform group-hover:translate-x-1"></i>
@@ -383,24 +365,23 @@
 
                     <!-- STEP 2: CONTACT FORM -->
                     <div id="calc-step-2" class="hidden-step flex-col lg:flex-row w-full step-transition">
-                        <!-- Linke Seite (Formular - Kompakter gemacht) -->
+                        <!-- Linke Seite (Formular) -->
                         <div class="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-start">
                             <div class="flex items-center mb-4 h-10">
                                 <h2 class="text-3xl lg:text-4xl font-black text-brand-primary m-0 tracking-tight">Ihre Kontaktdaten</h2>
                             </div>
-                            <p class="text-slate-500 mb-8 text-base font-light">Bitte geben Sie Ihre Daten ein, um das unverbindliche Muster-Angebot als PDF zu erhalten.</p>
+                            <p class="text-slate-500 mb-10 text-base font-light">Bitte geben Sie Ihre Daten ein, um das unverbindliche Muster-Angebot als PDF zu erhalten.</p>
 
-                            <!-- Reduzierte Abstände (space-y-4) für ein kompakteres Formular -->
-                            <form class="space-y-4 w-full" id="contact-form" onsubmit="event.preventDefault(); downloadOfferPDF();">
+                            <form class="space-y-6 w-full" id="contact-form" onsubmit="event.preventDefault(); downloadOfferPDF();">
                                 <div>
                                     <label class="calc-label">Finanzierungsart</label>
                                     <div class="relative">
-                                        <select id="form-finanzierungsart" class="form-input appearance-none cursor-pointer pr-8 bg-transparent border-b-2" required>
+                                        <select id="form-finanzierungsart" class="form-input appearance-none cursor-pointer pr-8" required>
                                             <option value="" disabled selected>Wählen</option>
                                             <option value="Leasing">Leasing</option>
                                             <option value="Mietkauf">Mietkauf</option>
                                         </select>
-                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none">
+                                        <div class="absolute right-2 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none">
                                             <i class="fa-solid fa-chevron-down text-sm"></i>
                                         </div>
                                     </div>
@@ -409,46 +390,46 @@
                                 <div>
                                     <label class="calc-label">Anrede</label>
                                     <div class="relative">
-                                        <select id="form-anrede" class="form-input appearance-none cursor-pointer pr-8 bg-transparent border-b-2" required>
+                                        <select id="form-anrede" class="form-input appearance-none cursor-pointer pr-8" required>
                                             <option value="" disabled selected>Wählen</option>
                                             <option value="Frau">Frau</option>
                                             <option value="Herr">Herr</option>
                                         </select>
-                                        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none">
+                                        <div class="absolute right-2 top-1/2 -translate-y-1/2 text-brand-primary pointer-events-none">
                                             <i class="fa-solid fa-chevron-down text-sm"></i>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                     <div>
                                         <label class="calc-label">Vorname</label>
-                                        <input type="text" id="form-vorname" class="form-input bg-transparent border-b-2" required>
+                                        <input type="text" id="form-vorname" class="form-input" required>
                                     </div>
                                     <div>
                                         <label class="calc-label">Nachname</label>
-                                        <input type="text" id="form-nachname" class="form-input bg-transparent border-b-2" required>
+                                        <input type="text" id="form-nachname" class="form-input" required>
                                     </div>
                                 </div>
 
                                 <div>
                                     <label class="calc-label">Firmenname</label>
-                                    <input type="text" id="form-firma" class="form-input bg-transparent border-b-2" required>
+                                    <input type="text" id="form-firma" class="form-input" required>
                                 </div>
 
                                 <div>
                                     <label class="calc-label">Adresse & Hausnummer</label>
-                                    <input type="text" id="form-strasse" class="form-input bg-transparent border-b-2" required>
+                                    <input type="text" id="form-strasse" class="form-input" required>
                                 </div>
 
-                                <div class="grid grid-cols-3 gap-4">
+                                <div class="grid grid-cols-3 gap-6">
                                     <div class="col-span-1">
                                         <label class="calc-label">Postleitzahl</label>
-                                        <input type="text" id="form-plz" class="form-input bg-transparent border-b-2" required>
+                                        <input type="text" id="form-plz" class="form-input" required>
                                     </div>
                                     <div class="col-span-2">
                                         <label class="calc-label">Ort</label>
-                                        <input type="text" id="form-ort" class="form-input bg-transparent border-b-2" required>
+                                        <input type="text" id="form-ort" class="form-input" required>
                                     </div>
                                 </div>
 
@@ -679,13 +660,11 @@
             }
         }
 
-        // NEU: Hilfsfunktion für den weichen "Count-Up" Effekt der Zahlen
         function animateNumber(element, start, end, duration) {
             let startTimestamp = null;
             const step = (timestamp) => {
                 if (!startTimestamp) startTimestamp = timestamp;
                 const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-                // EaseOutQuart für ein weiches, langsameres Auslaufen der Animation
                 const easeOutProgress = 1 - Math.pow(1 - progress, 4);
                 const currentVal = start + (end - start) * easeOutProgress;
                 
@@ -694,7 +673,7 @@
                 if (progress < 1) {
                     window.requestAnimationFrame(step);
                 } else {
-                    element.innerText = formatCurrency(end); // Setze exakten Endwert am Schluss
+                    element.innerText = formatCurrency(end); 
                 }
             };
             window.requestAnimationFrame(step);
@@ -726,16 +705,13 @@
                 if (price && price > 0) {
                     const rate = price * (factor / 100);
                     
-                    // Aktuellen Wert auslesen, um von diesem hoch- oder runterzuzählen
                     const currentText = resultDisplay.innerText.replace(/\./g, '').replace(',', '.');
                     const startRate = parseFloat(currentText) || 0;
                     
-                    // Pop-Animation triggern (kurzes Aufblähen der Zahl)
                     resultDisplay.classList.remove('animate-number-pop');
-                    void resultDisplay.offsetWidth; // Reflow erzwingen, um die Animation neuzustarten
+                    void resultDisplay.offsetWidth; 
                     resultDisplay.classList.add('animate-number-pop');
                     
-                    // Count-Up Animation starten (Dauer: 400ms statt 1000ms für knackiges Feedback)
                     animateNumber(resultDisplay, startRate, rate, 400);
                     
                     nextBtn.disabled = false;
@@ -769,7 +745,6 @@
                 document.getElementById('summary-leasing-factor').innerText = formatFactor(factor);
                 document.getElementById('summary-rate').innerText = rateVal;
 
-                // Sofortiger Wechsel ohne Lücke in der Höhe
                 step1.classList.remove('active-step');
                 step1.classList.add('hidden-step');
                 
@@ -779,7 +754,6 @@
                 adjustContainerHeight('calculator');
                 
             } else {
-                // Sofortiger Wechsel zurück
                 step2.classList.remove('active-step');
                 step2.classList.add('hidden-step');
 
@@ -790,33 +764,28 @@
             }
         }
 
-        // Generiert vollautomatisch ein schickes Platzhalter-Logo als Base64 Bild für das PDF
         function generateGenericLogo() {
             const canvas = document.createElement('canvas');
             canvas.width = 300;
             canvas.height = 80;
             const ctx = canvas.getContext('2d');
             
-            // Icon Background (Blau)
             ctx.fillStyle = '#032659'; 
             ctx.beginPath();
             ctx.roundRect(0, 15, 50, 50, 12);
             ctx.fill();
 
-            // Icon Inner Detail (Weißer Kreis als abstrakte Form)
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
             ctx.arc(25, 40, 12, 0, Math.PI * 2);
             ctx.fill();
 
-            // Text MUSTER
             ctx.fillStyle = '#032659';
             ctx.font = '900 34px Helvetica, Arial, sans-serif';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillText('MUSTER', 65, 43);
 
-            // Text LOGO
             ctx.fillStyle = '#64748B';
             ctx.font = '300 34px Helvetica, Arial, sans-serif';
             ctx.fillText('LOGO', 215, 43);
@@ -936,26 +905,6 @@
                 const filename = `MusterAngebot_${art}_${firmaClean}.pdf`;
                 
                 doc.save(filename);
-
-                const templateParams = {
-                    firma_name: firma,
-                    kontakt_name: `${anrede} ${vorname} ${nachname}`,
-                    adresse: strasse,
-                    plz_ort: `${plz} ${ort}`,
-                    finanzierungsart: art,
-                    anschaffungspreis: preisVal,
-                    laufzeit: laufzeitVal,
-                    rate: rateVal,
-                    leasingfaktor: leasingfaktorVal,
-                    restwert: restwertEuroVal
-                };
-
-                try {
-                    await emailjs.send("DEINE_SERVICE_ID", "DEINE_TEMPLATE_ID", templateParams);
-                    console.log("E-Mail Alert erfolgreich versendet.");
-                } catch (emailError) {
-                    console.warn("Muster: EmailJS nicht konfiguriert oder Fehler aufgetreten.", emailError);
-                }
 
             } catch (error) {
                 console.error("Fehler bei der PDF Generierung:", error);
