@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>White-Label Finanzierungsrechner Demo</title>
     
+    <!-- OWASP: Content Security Policy (CSP) & Clickjacking Schutz -->
+    <!-- Erlaubt nur definierte Quellen. frame-ancestors 'self' verhindert, dass Angreifer die Seite in unsichtbare Iframes laden. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com data:; img-src 'self' data: blob:; frame-ancestors 'self';">
+
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- PURE jsPDF Library -->
@@ -187,6 +191,12 @@
         }
         .form-input:focus {
             border-bottom-color: #032659;
+        }
+
+        /* Error Outline Class for Validation */
+        .input-error {
+            border-bottom-color: #EF4444 !important;
+            background-color: #FEF2F2 !important;
         }
 
         /* Select Pfeil für Formulare fixieren */
@@ -392,11 +402,17 @@
                             </div>
                             <p class="text-slate-500 mb-8 md:mb-10 text-sm md:text-base font-light">Bitte geben Sie Ihre Daten ein, um das unverbindliche Muster-Angebot als PDF zu erhalten.</p>
 
-                            <form class="space-y-5 md:space-y-6 w-full" id="contact-form" onsubmit="event.preventDefault(); downloadOfferPDF();">
+                            <!-- SICHERHEITS-UPDATE: autocomplete="off" verhindert, dass der Browser Eingaben speichert -->
+                            <form class="space-y-5 md:space-y-6 w-full" id="contact-form" autocomplete="off" onsubmit="event.preventDefault(); handleFormSubmit();">
+                                
+                                <!-- Zusätzlicher Hack: Versteckte Fake-Felder, um aggressive Passwortmanager/Autofills auszutricksen -->
+                                <input type="text" style="display:none" autocomplete="false">
+                                <input type="password" style="display:none" autocomplete="false">
+
                                 <div>
                                     <label class="calc-label">Finanzierungsart</label>
                                     <div class="relative">
-                                        <select id="form-finanzierungsart" class="form-input" required>
+                                        <select id="form-finanzierungsart" class="form-input" autocomplete="off" required>
                                             <option value="" disabled selected>Wählen</option>
                                             <option value="Leasing">Leasing</option>
                                             <option value="Mietkauf">Mietkauf</option>
@@ -410,7 +426,7 @@
                                 <div>
                                     <label class="calc-label">Anrede</label>
                                     <div class="relative">
-                                        <select id="form-anrede" class="form-input" required>
+                                        <select id="form-anrede" class="form-input" autocomplete="off" required>
                                             <option value="" disabled selected>Wählen</option>
                                             <option value="Frau">Frau</option>
                                             <option value="Herr">Herr</option>
@@ -424,33 +440,39 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
                                     <div>
                                         <label class="calc-label">Vorname</label>
-                                        <input type="text" id="form-vorname" class="form-input" required>
+                                        <input type="text" id="form-vorname" class="form-input" maxlength="50" autocomplete="off" required>
                                     </div>
                                     <div>
                                         <label class="calc-label">Nachname</label>
-                                        <input type="text" id="form-nachname" class="form-input" required>
+                                        <input type="text" id="form-nachname" class="form-input" maxlength="50" autocomplete="off" required>
                                     </div>
                                 </div>
 
                                 <div>
                                     <label class="calc-label">Firmenname</label>
-                                    <input type="text" id="form-firma" class="form-input" required>
+                                    <input type="text" id="form-firma" class="form-input" maxlength="100" autocomplete="off" required>
                                 </div>
 
                                 <div>
                                     <label class="calc-label">Adresse & Hausnummer</label>
-                                    <input type="text" id="form-strasse" class="form-input" required>
+                                    <input type="text" id="form-strasse" class="form-input" maxlength="150" autocomplete="off" required>
                                 </div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6">
                                     <div class="sm:col-span-1">
                                         <label class="calc-label">Postleitzahl</label>
-                                        <input type="text" id="form-plz" class="form-input" required>
+                                        <input type="text" id="form-plz" class="form-input" maxlength="10" autocomplete="off" required>
                                     </div>
                                     <div class="sm:col-span-2">
                                         <label class="calc-label">Ort</label>
-                                        <input type="text" id="form-ort" class="form-input" required>
+                                        <input type="text" id="form-ort" class="form-input" maxlength="100" autocomplete="off" required>
                                     </div>
+                                </div>
+
+                                <!-- Rate Limit Message (Client-Side DoS Protection) -->
+                                <div id="rate-limit-msg" class="hidden mt-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-bold flex items-center gap-3 transition-opacity duration-300">
+                                    <i class="fa-solid fa-clock"></i>
+                                    <span>Bitte warten Sie einen Moment, bevor Sie ein weiteres Angebot generieren.</span>
                                 </div>
 
                                 <div class="pt-4 md:pt-6">
@@ -585,6 +607,28 @@
             "10": { "36": 3.06, "48": 2.36, "54": 2.13, "60": null },
             "5":  { "36": null, "48": 2.45, "54": 2.22, "60": 2.02 }
         };
+
+        // --- SICHERHEITS-UPDATE: RATENBEGRENZUNG (Client-Side Rate Limiting) ---
+        // Verhindert CPU Exhaustion durch massenhafte PDF-Generierungs-Spams
+        const RATE_LIMIT_COOLDOWN_MS = 30000; // 30 Sekunden
+        const RATE_LIMIT_KEY = 'whitelabel_last_submission';
+
+        // --- SICHERHEITS-UPDATE: INPUT SANITIZATION (XSS Schutz) ---
+        // Blockiert Code-Injection in das PDF-Dokument
+        function sanitizeInput(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"'/]/g, function (match) {
+                const escapeMap = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                    '/': '&#x2F;'
+                };
+                return escapeMap[match];
+            }).trim();
+        }
 
         // --- ROBUSTE HÖHENBERECHNUNG (RESIZEOBSERVER) ---
         // Verhindert das Abschneiden von Containern auf mobilen Geräten und bei Skalierung
@@ -844,24 +888,60 @@
             return { data: canvas.toDataURL('image/png'), w: 300, h: 80 };
         }
 
-        async function downloadOfferPDF() {
+        // NEU: Controller-Funktion für Form-Submit (inkl. Sicherheit & Rate Limit)
+        async function handleFormSubmit() {
             const btn = document.getElementById('submit-btn');
+            const rateLimitMsg = document.getElementById('rate-limit-msg');
+            
+            // Rate Limit prüfen
+            const lastSubmit = localStorage.getItem(RATE_LIMIT_KEY);
+            if (lastSubmit) {
+                const timePassed = Date.now() - parseInt(lastSubmit, 10);
+                if (timePassed < RATE_LIMIT_COOLDOWN_MS) {
+                    const timeLeft = RATE_LIMIT_COOLDOWN_MS - timePassed;
+                    
+                    rateLimitMsg.classList.remove('hidden');
+                    btn.disabled = true;
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    adjustContainerHeight('calculator');
+
+                    // Automatischer Unlock
+                    setTimeout(() => {
+                        rateLimitMsg.classList.add('hidden');
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        adjustContainerHeight('calculator');
+                    }, timeLeft);
+                    
+                    return;
+                }
+            }
+            rateLimitMsg.classList.add('hidden');
+
             const originalText = btn.innerHTML;
             btn.innerHTML = '<span>Angebot wird erstellt...</span> <i class="fa-solid fa-spinner fa-spin"></i>';
             btn.disabled = true;
 
+            // Timer setzen
+            localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
+
+            await downloadOfferPDF(originalText, btn);
+        }
+
+        async function downloadOfferPDF(originalText, btn) {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
-                const art = document.getElementById('form-finanzierungsart').value;
-                const anrede = document.getElementById('form-anrede').value;
-                const vorname = document.getElementById('form-vorname').value;
-                const nachname = document.getElementById('form-nachname').value;
-                const firma = document.getElementById('form-firma').value;
-                const strasse = document.getElementById('form-strasse').value;
-                const plz = document.getElementById('form-plz').value;
-                const ort = document.getElementById('form-ort').value;
+                // Alle Eingaben sicher bereinigen (Sanitization)
+                const art = sanitizeInput(document.getElementById('form-finanzierungsart').value);
+                const anrede = sanitizeInput(document.getElementById('form-anrede').value);
+                const vorname = sanitizeInput(document.getElementById('form-vorname').value);
+                const nachname = sanitizeInput(document.getElementById('form-nachname').value);
+                const firma = sanitizeInput(document.getElementById('form-firma').value);
+                const strasse = sanitizeInput(document.getElementById('form-strasse').value);
+                const plz = sanitizeInput(document.getElementById('form-plz').value);
+                const ort = sanitizeInput(document.getElementById('form-ort').value);
 
                 let salutation = anrede === "Frau" ? `Sehr geehrte Frau ${nachname},` :
                                  anrede === "Herr" ? `Sehr geehrter Herr ${nachname},` :
@@ -870,11 +950,11 @@
                 const date = new Date();
                 const datum = ('0' + date.getDate()).slice(-2) + '.' + ('0' + (date.getMonth() + 1)).slice(-2) + '.' + date.getFullYear();
 
-                const preisVal = document.getElementById('summary-price').textContent.replace('€', '').trim();
-                const laufzeitVal = document.getElementById('summary-duration').textContent.replace('Monate', '').trim();
-                const restwertEuroVal = document.getElementById('summary-residual-euro').textContent.replace('€', '').trim();
-                let leasingfaktorVal = document.getElementById('summary-leasing-factor').textContent.trim();
-                const rateVal = document.getElementById('summary-rate').textContent.replace('€', '').trim();
+                const preisVal = sanitizeInput(document.getElementById('summary-price').textContent).replace('€', '').trim();
+                const laufzeitVal = sanitizeInput(document.getElementById('summary-duration').textContent).replace('Monate', '').trim();
+                const restwertEuroVal = sanitizeInput(document.getElementById('summary-residual-euro').textContent).replace('€', '').trim();
+                let leasingfaktorVal = sanitizeInput(document.getElementById('summary-leasing-factor').textContent).trim();
+                const rateVal = sanitizeInput(document.getElementById('summary-rate').textContent).replace('€', '').trim();
 
                 const logo = generateGenericLogo();
                 const maxW = 45; const maxH = 12;
