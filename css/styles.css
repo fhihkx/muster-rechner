@@ -185,8 +185,8 @@ textarea {
 
 /* Dynamic content views */
 #content-container {
-  transition: height var(--transition-soft);
-  will-change: height;
+  position: relative;
+  min-height: 1px;
 }
 
 .view-content {
