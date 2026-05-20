@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>White-Label Finanzierungsrechner Demo</title>
+
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="
+      default-src 'self';
+      script-src 'self' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net;
+      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+      font-src 'self' https://cdnjs.cloudflare.com data:;
+      img-src 'self' data: blob:;
+      object-src 'none';
+      base-uri 'self';
+      form-action 'self';
+      frame-ancestors 'self';
+      upgrade-insecure-requests;
+    "
+  />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta name="robots" content="noindex,nofollow" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+
+<body class="flex flex-col min-h-screen">
+  <div class="bg-brand-primary text-white text-center py-3 px-4 text-xs md:text-sm font-medium tracking-wider shadow-inner flex items-center justify-center gap-3 relative z-[60] uppercase">
+    <span class="flex h-5 w-5 relative shrink-0" aria-hidden="true">
+      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-40"></span>
+      <span class="relative inline-flex rounded-full h-5 w-5 bg-white text-brand-primary items-center justify-center text-xs">
+        <i class="fa-solid fa-info"></i>
+      </span>
+    </span>
+    <span class="leading-snug"><strong>White-Label Demo:</strong> Vollständig anpassbar an Ihr Corporate Design</span>
+  </div>
+
+  <header class="bg-white sticky top-0 z-50 border-b border-gray-100 transition-all duration-300 shadow-sm">
+    <div class="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-5 flex items-center justify-between">
+      <div class="flex items-center gap-3 group shrink-0 select-none opacity-0 animate-fade-in-up">
+        <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-brand-primary flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition-transform duration-500">
+          <i class="fa-solid fa-shapes text-base md:text-xl" aria-hidden="true"></i>
+        </div>
+        <div class="text-lg md:text-2xl tracking-tighter flex items-baseline" aria-label="Musterlogo">
+          <span class="font-black text-brand-primary">MUSTER</span>
+          <span class="font-light text-slate-500">LOGO</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        id="contact-demo-btn"
+        class="bg-brand-primary text-white px-5 py-2.5 md:px-8 md:py-3 rounded-xl text-xs md:text-sm font-bold tracking-widest uppercase hover:bg-transparent hover:text-brand-primary hover:shadow-[inset_0_0_0_2px_#032659] transition-all duration-300 shadow-md whitespace-nowrap opacity-0 animate-fade-in-up delay-100"
+      >
+        Kontakt <span class="hidden sm:inline">aufnehmen</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="pt-16 pb-10 md:pt-24 md:pb-12 px-4 text-center relative overflow-hidden">
+    <h1 class="text-4xl md:text-6xl lg:text-7xl font-black text-brand-dark mb-4 md:mb-6 tracking-tighter opacity-0 animate-fade-in-up delay-100 leading-tight">
+      Ihr individueller <br />
+      <span class="text-brand-primary inline-block md:mt-2">Finanzierungsrechner</span>
+    </h1>
+    <p class="text-base md:text-xl text-slate-500 max-w-2xl mx-auto font-light leading-relaxed opacity-0 animate-fade-in-up delay-200 px-4">
+      Bieten Sie Ihren Kunden transparente Finanzierungsmöglichkeiten direkt auf Ihrer Website. Schnell, sicher und anpassbar.
+    </p>
+  </section>
+
+  <main class="w-full max-w-6xl mx-auto px-4 md:px-6 pb-24 md:pb-32 relative z-10">
+    <div class="flex justify-center mb-10 md:mb-16 opacity-0 animate-fade-in-up delay-300">
+      <div class="tab-nav" role="tablist" aria-label="Demo-Bereiche">
+        <button type="button" id="tab-calculator" class="tab-btn active" data-tab="calculator" role="tab" aria-controls="view-calculator" aria-selected="true">Rechner-Demo</button>
+        <button type="button" id="tab-why" class="tab-btn" data-tab="why" role="tab" aria-controls="view-why" aria-selected="false">Beispiel: Vorteile</button>
+        <button type="button" id="tab-compare" class="tab-btn" data-tab="compare" role="tab" aria-controls="view-compare" aria-selected="false">Leasing vs. Mietkauf</button>
+      </div>
+    </div>
+
+    <div id="content-container" class="relative w-full overflow-visible opacity-0 animate-fade-in-up delay-400">
+      <section id="view-calculator" class="view-content active-view" role="tabpanel" aria-labelledby="tab-calculator">
+        <div class="bg-white rounded-2xl md:rounded-3xl shadow-card overflow-hidden border border-slate-100/50 relative group">
+          <div id="calc-step-1" class="calc-step active-step">
+            <div class="w-full lg:w-7/12 p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-start">
+              <div class="flex items-center justify-between mb-8 md:mb-10 h-auto md:h-10">
+                <h2 class="text-2xl md:text-3xl lg:text-4xl font-black text-brand-primary tracking-tight m-0">Finanzierung berechnen</h2>
+              </div>
+
+              <div class="space-y-8 md:space-y-10 w-full">
+                <div>
+                  <label for="price" class="calc-label">Anschaffungspreis (Netto)</label>
+                  <div class="calc-input-wrapper">
+                    <span class="text-slate-300 font-light mr-3 text-2xl" aria-hidden="true">€</span>
+                    <input type="text" id="price" class="calc-input text-xl md:text-2xl" placeholder="0,00" inputmode="decimal" maxlength="15" autocomplete="off" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-10">
+                  <div>
+                    <label for="duration" class="calc-label">Laufzeit</label>
+                    <div class="calc-input-wrapper relative">
+                      <select id="duration" class="calc-input text-lg md:text-xl cursor-pointer">
+                        <option value="" disabled selected>Bitte wählen</option>
+                        <option value="36">36 Monate</option>
+                        <option value="48">48 Monate</option>
+                        <option value="54">54 Monate</option>
+                        <option value="60">60 Monate</option>
+                      </select>
+                      <span class="select-icon"><i class="fa-solid fa-chevron-down text-sm" aria-hidden="true"></i></span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label for="residual" class="calc-label">Restwert</label>
+                    <div class="calc-input-wrapper relative">
+                      <select id="residual" class="calc-input text-lg md:text-xl cursor-pointer">
+                        <option value="" disabled selected>Bitte wählen</option>
+                        <option value="5">5 %</option>
+                        <option value="10">10 %</option>
+                        <option value="15">15 %</option>
+                      </select>
+                      <span class="select-icon"><i class="fa-solid fa-chevron-down text-sm" aria-hidden="true"></i></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="pt-4 md:pt-6">
+                  <button type="button" id="calculate-btn" class="w-full py-4 bg-brand-primary text-white font-bold rounded-xl text-sm md:text-base uppercase tracking-widest hover:bg-brand-primaryHover transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(3,38,89,0.5)] hover:-translate-y-1 flex justify-center items-center gap-3">
+                    Rate berechnen
+                    <i class="fa-solid fa-arrow-right ml-2 transition-transform group-hover:translate-x-1" aria-hidden="true"></i>
+                  </button>
+                </div>
+
+                <div id="error-msg" class="hidden p-4 rounded-lg bg-red-50 border border-red-100 flex items-start gap-4 text-red-600 text-sm font-medium" aria-live="polite">
+                  <i class="fa-solid fa-circle-exclamation text-xl mt-0.5" aria-hidden="true"></i>
+                  <span id="error-text">Diese Kombination ist aktuell nicht verfügbar.</span>
+                </div>
+              </div>
+            </div>
+
+            <aside class="w-full lg:w-5/12 bg-brand-dark p-6 sm:p-8 md:p-12 lg:p-16 text-white flex flex-col justify-start relative">
+              <div class="relative z-10 flex flex-col h-full">
+                <div class="flex items-center mb-6 md:mb-8 h-auto md:h-10">
+                  <div class="inline-block px-4 py-2 rounded-full bg-slate-700 border border-slate-600 text-[10px] font-bold tracking-widest text-white m-0 uppercase">
+                    Unverbindliches Angebot
+                  </div>
+                </div>
+
+                <div class="space-y-6 md:space-y-8 w-full flex-grow flex flex-col">
+                  <div class="pt-2 md:pt-4">
+                    <div class="text-[11px] md:text-[12px] font-bold tracking-[0.15em] uppercase text-slate-400 mb-2 md:mb-4">Monatliche Rate</div>
+                    <div class="flex items-baseline gap-2">
+                      <output id="result-display" class="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter break-words text-white leading-none origin-left inline-block">0,00</output>
+                      <div class="text-2xl md:text-3xl font-light text-slate-400">€</div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 gap-6 pt-6 md:pt-8 mt-6 md:mt-8 border-t border-slate-700">
+                    <div>
+                      <div class="text-[11px] md:text-[12px] font-bold tracking-[0.1em] uppercase text-slate-500 mb-2">Hinweis</div>
+                      <p class="text-[11px] md:text-[12px] text-slate-400 leading-relaxed font-light">
+                        *Alle Preise zzgl. gesetzlicher MwSt. vorbehaltlich positiver Bonitätsprüfung durch unsere Finanzierungspartner.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-8 md:mt-auto self-end pt-6 md:pt-12">
+                  <button type="button" id="btn-next" class="w-14 h-14 md:w-16 md:h-16 bg-white text-brand-primary rounded-full flex items-center justify-center text-xl md:text-2xl hover:bg-slate-100 hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(255,255,255,0.1)] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:bg-white disabled:shadow-none" disabled aria-label="Weiter zu Kontaktdaten">
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          <div id="calc-step-2" class="calc-step hidden-step">
+            <div class="w-full lg:w-7/12 p-6 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-start">
+              <div class="flex items-center mb-4 h-auto md:h-10">
+                <h2 class="text-2xl md:text-3xl lg:text-4xl font-black text-brand-primary m-0 tracking-tight">Ihre Kontaktdaten</h2>
+              </div>
+              <p class="text-slate-500 mb-8 md:mb-10 text-sm md:text-base font-light">
+                Bitte geben Sie Ihre Daten ein, um das unverbindliche Muster-Angebot als PDF zu erhalten.
+              </p>
+
+              <form class="space-y-5 md:space-y-6 w-full" id="contact-form" novalidate>
+                <div>
+                  <label for="form-finanzierungsart" class="calc-label">Finanzierungsart</label>
+                  <div class="relative">
+                    <select id="form-finanzierungsart" class="form-input" required>
+                      <option value="" disabled selected>Wählen</option>
+                      <option value="Leasing">Leasing</option>
+                      <option value="Mietkauf">Mietkauf</option>
+                    </select>
+                    <span class="select-icon"><i class="fa-solid fa-chevron-down text-sm" aria-hidden="true"></i></span>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="form-anrede" class="calc-label">Anrede</label>
+                  <div class="relative">
+                    <select id="form-anrede" class="form-input" required>
+                      <option value="" disabled selected>Wählen</option>
+                      <option value="Frau">Frau</option>
+                      <option value="Herr">Herr</option>
+                    </select>
+                    <span class="select-icon"><i class="fa-solid fa-chevron-down text-sm" aria-hidden="true"></i></span>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 md:gap-6">
+                  <div>
+                    <label for="form-vorname" class="calc-label">Vorname</label>
+                    <input type="text" id="form-vorname" class="form-input" maxlength="50" autocomplete="given-name" required />
+                  </div>
+                  <div>
+                    <label for="form-nachname" class="calc-label">Nachname</label>
+                    <input type="text" id="form-nachname" class="form-input" maxlength="50" autocomplete="family-name" required />
+                  </div>
+                </div>
+
+                <div>
+                  <label for="form-firma" class="calc-label">Firmenname</label>
+                  <input type="text" id="form-firma" class="form-input" maxlength="100" autocomplete="organization" required />
+                </div>
+
+                <div>
+                  <label for="form-strasse" class="calc-label">Adresse & Hausnummer</label>
+                  <input type="text" id="form-strasse" class="form-input" maxlength="150" autocomplete="street-address" required />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6">
+                  <div class="sm:col-span-1">
+                    <label for="form-plz" class="calc-label">Postleitzahl</label>
+                    <input type="text" id="form-plz" class="form-input" maxlength="10" inputmode="numeric" autocomplete="postal-code" required />
+                  </div>
+                  <div class="sm:col-span-2">
+                    <label for="form-ort" class="calc-label">Ort</label>
+                    <input type="text" id="form-ort" class="form-input" maxlength="100" autocomplete="address-level2" required />
+                  </div>
+                </div>
+
+                <div id="rate-limit-msg" class="hidden mt-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-700 text-sm font-bold flex items-center gap-3 transition-opacity duration-300" aria-live="polite">
+                  <i class="fa-solid fa-clock" aria-hidden="true"></i>
+                  <span>Bitte warten Sie einen kurzen Moment (3s).</span>
+                </div>
+
+                <div class="pt-4 md:pt-6">
+                  <button type="submit" id="submit-btn" class="w-full bg-brand-primary text-white font-bold py-4 rounded-xl text-sm md:text-base uppercase tracking-widest hover:bg-brand-primaryHover transition-all duration-300 shadow-[0_10px_20px_-10px_rgba(3,38,89,0.5)] hover:-translate-y-1 flex justify-center items-center gap-3">
+                    <span>PDF-Angebot generieren</span>
+                    <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <aside class="w-full lg:w-5/12 bg-brand-dark p-6 sm:p-8 md:p-12 lg:p-16 text-white flex flex-col justify-start relative">
+              <div class="relative z-10 flex flex-col h-full">
+                <div class="flex items-center mb-6 md:mb-8 h-auto md:h-10">
+                  <h3 class="font-black tracking-tight text-2xl md:text-3xl m-0">Zusammenfassung</h3>
+                </div>
+
+                <dl class="space-y-4 md:space-y-5 text-sm flex-grow font-light">
+                  <div class="summary-row"><dt>Anschaffungspreis</dt><dd id="summary-price">0,00 €</dd></div>
+                  <div class="summary-row"><dt>Laufzeit</dt><dd><span id="summary-duration">0</span> Monate</dd></div>
+                  <div class="summary-row"><dt>Anzahlung</dt><dd>0,00 €</dd></div>
+                  <div class="summary-row"><dt>Restwert</dt><dd id="summary-residual-euro">0,00 €</dd></div>
+                  <div class="summary-row"><dt>Leasingfaktor</dt><dd id="summary-leasing-factor">0,00 %</dd></div>
+                </dl>
+
+                <div class="mt-10 md:mt-12">
+                  <div class="text-slate-400 text-[11px] font-bold tracking-[0.15em] uppercase mb-2 md:mb-4">Monatliche Rate</div>
+                  <div class="flex items-baseline gap-2">
+                    <output id="summary-rate" class="text-5xl md:text-6xl font-black tracking-tighter text-white">0,00</output>
+                    <div class="text-2xl font-light text-slate-400">€</div>
+                  </div>
+                </div>
+
+                <div class="mt-8 md:mt-10">
+                  <button type="button" id="back-btn" class="text-slate-400 hover:text-white text-sm font-bold flex items-center gap-3 transition-colors tracking-widest uppercase">
+                    <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Angaben ändern
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-why" class="view-content hidden-view" role="tabpanel" aria-labelledby="tab-why">
+        <div class="bg-white rounded-2xl md:rounded-3xl shadow-card p-6 sm:p-8 md:p-16 lg:p-24 border border-slate-100 flex flex-col justify-center">
+          <div class="text-center mb-10 md:mb-20">
+            <h2 class="text-3xl md:text-4xl lg:text-5xl font-black text-brand-dark mb-4 md:mb-6 tracking-tight">Ihre Vorteile im Überblick</h2>
+            <p class="text-slate-500 text-lg md:text-xl font-light max-w-2xl mx-auto">Präsentieren Sie hier die starken Argumente für Ihre Produkte.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-10">
+            <article class="benefit-card">
+              <div class="benefit-icon"><i class="fa-solid fa-wallet" aria-hidden="true"></i></div>
+              <h3>Liquidität schonen</h3>
+              <p>Erklären Sie, wie der Kunde durch bequeme Ratenzahlung sein Eigenkapital behält und finanziell flexibel bleibt.</p>
+            </article>
+
+            <article class="benefit-card">
+              <div class="benefit-icon"><i class="fa-solid fa-chart-line" aria-hidden="true"></i></div>
+              <h3>Sichere Planung</h3>
+              <p>Erwähnen Sie die konstanten, festen Raten, die über die gesamte Laufzeit eine einfache Budgetplanung ermöglichen.</p>
+            </article>
+
+            <article class="benefit-card">
+              <div class="benefit-icon"><i class="fa-solid fa-rocket" aria-hidden="true"></i></div>
+              <h3>Modernste Technik</h3>
+              <p>Zeigen Sie auf, dass Kunden durch smarte Finanzierung immer Zugang zu Ihren neuesten Innovationen haben.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-compare" class="view-content hidden-view" role="tabpanel" aria-labelledby="tab-compare">
+        <div class="bg-white rounded-2xl md:rounded-3xl shadow-card p-6 sm:p-8 md:p-16 lg:p-24 border border-slate-100 flex flex-col justify-center">
+          <div class="text-center mb-10 md:mb-16">
+            <h2 class="text-3xl md:text-4xl lg:text-5xl font-black text-brand-dark mb-4 md:mb-6 tracking-tight">Die richtige Lösung finden</h2>
+            <p class="text-slate-500 text-lg md:text-xl font-light max-w-2xl mx-auto">Leasing oder Mietkauf? Vergleichen Sie die Vorteile beider Modelle.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+            <article class="compare-card">
+              <div class="benefit-icon"><i class="fa-solid fa-file-contract" aria-hidden="true"></i></div>
+              <h3>Leasing</h3>
+              <ul>
+                <li><i class="fa-solid fa-check" aria-hidden="true"></i><span><strong>Bilanzneutral:</strong> Investition taucht nicht in der Bilanz auf und schont die Eigenkapitalquote.</span></li>
+                <li><i class="fa-solid fa-check" aria-hidden="true"></i><span><strong>Betriebsausgaben:</strong> Die Leasingraten sind echte Kosten und daher in voller Höhe absetzbar.</span></li>
+                <li><i class="fa-solid fa-check" aria-hidden="true"></i><span><strong>Eigentumsübergabe:</strong> Ziel ist die Übernahme zum Laufzeitende. Eine Rückgabe ist nicht gewünscht.</span></li>
+              </ul>
+            </article>
+
+            <article class="compare-card">
+              <div class="benefit-icon"><i class="fa-solid fa-handshake" aria-hidden="true"></i></div>
+              <h3>Mietkauf</h3>
+              <ul>
+                <li><i class="fa-solid fa-check" aria-hidden="true"></i><span><strong>Automatisches Eigentum:</strong> Mit Zahlung der letzten Rate gehört die Ausrüstung zu 100 % Ihnen.</span></li>
+                <li><i class="fa-solid fa-check" aria-hidden="true"></i><span><strong>Bilanzierung:</strong> Die Maschine wird direkt in Ihrem eigenen Anlagevermögen aktiviert.</span></li>
+                <li><i class="fa-solid fa-check" aria-hidden="true"></i><span><strong>MwSt.:</strong> Vor Auszahlung ist die MwSt. auf die Summe aller Raten an die Leasinggesellschaft zu zahlen.</span></li>
+              </ul>
+            </article>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-12 md:py-16 mt-auto relative z-20">
+    <div class="max-w-[1400px] mx-auto px-6 md:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 items-center">
+      <div class="flex flex-col gap-2 md:gap-3 text-center md:text-left">
+        <div class="flex items-center justify-center md:justify-start gap-3 select-none">
+          <div class="w-8 h-8 rounded-md bg-brand-primary flex items-center justify-center text-white shadow-sm">
+            <i class="fa-solid fa-shapes text-sm" aria-hidden="true"></i>
+          </div>
+          <div class="text-xl tracking-tighter flex items-baseline">
+            <span class="font-black text-brand-primary">MUSTER</span>
+            <span class="font-light text-slate-500">LOGO</span>
+          </div>
+        </div>
+        <p class="text-slate-400 text-xs md:text-sm font-light mt-2 md:mt-0">Ein Muster-Unternehmen für Demonstrationszwecke.</p>
+      </div>
+
+      <div class="flex justify-center text-slate-400 text-xs md:text-sm font-light">
+        <p>&copy; 2026 Musterfirma GmbH</p>
+      </div>
+
+      <nav class="flex justify-center md:justify-end gap-6 md:gap-8 text-xs md:text-sm font-medium text-slate-500" aria-label="Rechtliches">
+        <a href="#" class="hover:text-brand-primary transition-colors">Impressum</a>
+        <a href="#" class="hover:text-brand-primary transition-colors">Datenschutz</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
