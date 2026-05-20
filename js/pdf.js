@@ -21,6 +21,13 @@ function formatDateDE(date = new Date()) {
   }).format(date);
 }
 
+function formatTimeDE(date = new Date()) {
+  return new Intl.DateTimeFormat("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function makeSalutation({ salutation, firstName, lastName }) {
   if (salutation === "Frau") return `Sehr geehrte Frau ${lastName},`;
   if (salutation === "Herr") return `Sehr geehrter Herr ${lastName},`;
@@ -230,7 +237,12 @@ export function generateOfferPdf({ customer, calculation, date = new Date() }) {
   addFooter(doc);
 
   const filename = buildFilename(customer, customer.financingType);
+  const datum    = formatDateDE(date);
+  const uhrzeit  = formatTimeDE(date);
+
   doc.save(filename);
 
-  return filename;
+  // Return metadata so main.js can pass it to the email notification
+  // without regenerating the PDF or recalculating dates.
+  return { filename, datum, uhrzeit };
 }
