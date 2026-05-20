@@ -191,9 +191,11 @@ textarea {
 
 .view-content {
   width: 100%;
+  /* Default: fade-out — visibility hidden delayed until after opacity transition */
   transition:
-    opacity 0.7s ease-in-out,
-    transform 0.7s ease-in-out;
+    opacity    0.7s ease-in-out,
+    transform  0.7s ease-in-out,
+    visibility 0s   linear 0.7s;
 }
 
 .active-view {
@@ -201,17 +203,24 @@ textarea {
   display: block;
   opacity: 1;
   pointer-events: auto;
+  visibility: visible;
   transform: translateY(0);
   z-index: 10;
+  /* Fade-in: visibility becomes visible immediately (no delay) */
+  transition:
+    opacity    0.7s ease-in-out,
+    transform  0.7s ease-in-out,
+    visibility 0s   linear 0s;
 }
 
 .hidden-view {
   position: absolute;
   inset-inline: 0;
   top: 0;
-  display: none;
   opacity: 0;
   pointer-events: none;
+  /* visibility:hidden instead of display:none — allows CSS transition to play */
+  visibility: hidden;
   transform: translateY(20px);
   z-index: 0;
 }
