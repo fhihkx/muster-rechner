@@ -1,237 +1,139 @@
-/**
- * main.js — Application entry point.
- * Owns app state and wires all event listeners.
- */
-
-import { RATE_LIMIT, DEMO_MESSAGES } from "./config.js";
+import { calculateRate, formatPriceInputValue } from './calculator.js';
+import { validateContactForm } from './validation.js';
+import { generateOfferPdf } from './pdf.js';
+import { initEmailService, sendOfferEmail } from './email.js';
 
 import {
-  calculateRate,
-  formatPriceInputValue,
-  getSafeResidualForDuration,
-} from "./calculator.js";
-
-import { validateContactForm } from "./validation.js";
-import { canGeneratePdf, generateOfferPdf } from "./pdf.js";
-import { canSendEmail, initEmailJs, sendTrackingEmail } from "./email.js?v=20260520-emailfix2";
-
-import {
-  adjustContainerHeight,
-  clearFormErrors,
-  goToStep,
-  hideRateLimitMessage,
-  initResizeObserver,
-  initTabKeyboardNavigation,
-  markFormErrors,
+  switchTab,
   renderCalculationResult,
   renderSummary,
-  setSubmitLoading,
+  goToStep,
+  markFormErrors,
+  clearFormErrors,
   showDemoContactAlert,
-  showRateLimitMessage,
-  showUiError,
-  switchTab,
-  updateResidualOptions,
-} from "./ui.js";
+} from './ui.js';
 
-// ─── App state ────────────────────────────────────────────────
+const state = {
+  calculation: null,
+};
 
-const state = { calculation: null };
+window.addEventListener('DOMContentLoaded', init);
 
-// ─── Bootstrap ────────────────────────────────────────────────
+function init() {
+  initEmailService();
 
-document.addEventListener("DOMContentLoaded", initApp);
+  bindTabs();
+  bindCalculator();
+  bindForm();
 
-function initApp() {
-  bindEvents();
-  switchTab("calculator");
-  initTabKeyboardNavigation();
-  initResizeObserver();
-  updateResidualSelection();
-  initializeEmailService();
-  adjustContainerHeight("calculator");
+  document
+    .getElementById('contact-demo-btn')
+    ?.addEventListener('click', showDemoContactAlert);
 }
 
-// ─── Events ───────────────────────────────────────────────────
+function bindTabs() {
+  document.querySelectorAll('.tab-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      switchTab(button.dataset.tab);
+    });
+  });
+}
 
-function bindEvents() {
-  document
-    .getElementById("contact-demo-btn")
-    ?.addEventListener("click", showDemoContactAlert);
+function bindCalculator() {
+  const priceInput = document.getElementById('price');
+  const calculateBtn = document.getElementById('calculate-btn');
+  const nextBtn = document.getElementById('btn-next');
 
-  document.querySelectorAll(".tab-btn").forEach((btn) => {
-    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  priceInput?.addEventListener('input', (event) => {
+    event.target.value = formatPriceInputValue(event.target.value);
   });
 
-  document.getElementById("price")?.addEventListener("input", (e) => {
-    e.target.value = formatPriceInputValue(e.target.value);
-    resetCalculationIfNeeded();
+  calculateBtn?.addEventListener('click', () => {
+    const calculation = calculateRate({
+      price: document.getElementById('price')?.value,
+      duration: document.getElementById('duration')?.value,
+      residual: document.getElementById('residual')?.value,
+    });
+
+    state.calculation = calculation;
+
+    renderCalculationResult(calculation);
   });
 
-  document.getElementById("duration")?.addEventListener("change", () => {
-    updateResidualSelection();
-    resetCalculationIfNeeded();
-  });
+  nextBtn?.addEventListener('click', () => {
+    if (!state.calculation?.valid) return;
 
-  document.getElementById("residual")?.addEventListener("change", resetCalculationIfNeeded);
-
-  document.getElementById("calculate-btn")?.addEventListener("click", handleCalculate);
-
-  document.getElementById("btn-next")?.addEventListener("click", () => {
-    if (!state.calculation?.valid) {
-      showUiError(DEMO_MESSAGES.invalidCalculation);
-      return;
-    }
     renderSummary(state.calculation);
     goToStep(2);
   });
 
-  document.getElementById("back-btn")?.addEventListener("click", () => goToStep(1));
-
-  document.getElementById("contact-form")?.addEventListener("submit", (e) => {
-    e.preventDefault();
-    handleFormSubmit();
-  });
-
-  document.querySelectorAll("#contact-form input, #contact-form select").forEach((field) => {
-    field.addEventListener("input",  clearFormErrors);
-    field.addEventListener("change", clearFormErrors);
-  });
-
-  window.addEventListener("resize", () => adjustContainerHeight(), { passive: true });
-}
-
-// ─── Handlers ─────────────────────────────────────────────────
-
-function handleCalculate() {
-  const calculation = calculateRate({
-    price:    getValue("price"),
-    duration: getValue("duration"),
-    residual: getValue("residual"),
-  });
-  state.calculation = calculation;
-  renderCalculationResult(calculation);
-}
-
-async function handleFormSubmit() {
-  if (!state.calculation?.valid) {
-    showUiError(DEMO_MESSAGES.invalidCalculation);
-    goToStep(1);
-    return;
-  }
-
-  const rateLimit = getRateLimitStatus();
-  if (rateLimit.active) {
-    showRateLimitMessage(rateLimit.timeLeftMs);
-    return;
-  }
-
-  hideRateLimitMessage();
-
-  const formValidation = validateContactForm(readContactFormValues());
-  if (!formValidation.valid) {
-    markFormErrors(formValidation.errors);
-    showUiError(DEMO_MESSAGES.invalidForm);
-    return;
-  }
-
-  if (!canGeneratePdf()) {
-    showUiError(DEMO_MESSAGES.missingPdfLibrary);
-    return;
-  }
-
-  setSubmitLoading(true);
-
-  let pdfMeta = null;
-
-  try {
-    pdfMeta = generateOfferPdf({
-      customer: formValidation.values,
-      calculation: state.calculation,
+  document
+    .getElementById('back-btn')
+    ?.addEventListener('click', () => {
+      goToStep(1);
     });
-  } catch (error) {
-    console.error("PDF generation failed:", error);
-    showUiError(error?.message || DEMO_MESSAGES.pdfGenerationError);
-    setSubmitLoading(false);
-    return;
-  }
+}
 
-  try {
-    if (!canSendEmail()) {
-      throw new Error(DEMO_MESSAGES.missingEmailLibrary);
+function bindForm() {
+  const form = document.getElementById('contact-form');
+
+  document.querySelectorAll('#contact-form input, #contact-form select')
+    .forEach((field) => {
+      field.addEventListener('input', clearFormErrors);
+      field.addEventListener('change', clearFormErrors);
+    });
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    if (!state.calculation?.valid) return;
+
+    const honeypot = form.querySelector('[name="website"]')?.value;
+
+    if (honeypot) {
+      console.warn('Bot erkannt.');
+      return;
     }
 
-    await sendTrackingEmail({
-      customer: formValidation.values,
-      calculation: state.calculation,
-      filename: pdfMeta.filename,
-      datum: pdfMeta.datum,
-      uhrzeit: pdfMeta.uhrzeit,
-    });
+    const formValues = {
+      financingType: value('form-finanzierungsart'),
+      salutation: value('form-anrede'),
+      firstName: value('form-vorname'),
+      lastName: value('form-nachname'),
+      company: value('form-firma'),
+      street: value('form-strasse'),
+      postalCode: value('form-plz'),
+      city: value('form-ort'),
+    };
 
-    setRateLimitTimestamp();
-  } catch (error) {
-    console.error("Email notification failed. PDF was still generated:", error);
-    showUiError(`Das PDF wurde erstellt, aber die E-Mail konnte nicht versendet werden. Technischer Fehler: ${error?.message || "unbekannt"}`);
-  } finally {
-    setSubmitLoading(false);
-  }
+    const validation = validateContactForm(formValues);
+
+    if (!validation.valid) {
+      markFormErrors(validation.errors);
+      return;
+    }
+
+    try {
+      generateOfferPdf({
+        customer: validation.values,
+        calculation: state.calculation,
+      });
+
+      try {
+        await sendOfferEmail({
+          customer: validation.values,
+          calculation: state.calculation,
+        });
+      } catch (emailError) {
+        console.warn('[EmailJS] Mailversand fehlgeschlagen:', emailError);
+      }
+
+    } catch (error) {
+      console.error('PDF Fehler:', error);
+    }
+  });
 }
 
-// ─── Utilities ────────────────────────────────────────────────
-
-function initializeEmailService() {
-  try {
-    if (canSendEmail()) initEmailJs();
-  } catch (error) {
-    console.warn("[main] EmailJS initialization failed:", error);
-  }
-}
-
-function updateResidualSelection() {
-  const duration = getValue("duration");
-  const residual = getValue("residual");
-  const safe     = getSafeResidualForDuration(duration, residual);
-  updateResidualOptions(duration, safe);
-}
-
-function readContactFormValues() {
-  return {
-    financingType: getValue("form-finanzierungsart"),
-    salutation:    getValue("form-anrede"),
-    firstName:     getValue("form-vorname"),
-    lastName:      getValue("form-nachname"),
-    company:       getValue("form-firma"),
-    street:        getValue("form-strasse"),
-    postalCode:    getValue("form-plz"),
-    city:          getValue("form-ort"),
-  };
-}
-
-function resetCalculationIfNeeded() {
-  state.calculation = null;
-  const nextBtn  = document.getElementById("btn-next");
-  const resultEl = document.getElementById("result-display");
-  if (nextBtn)  nextBtn.disabled = true;
-  if (resultEl) resultEl.textContent = "0,00";
-}
-
-function getRateLimitStatus() {
-  try {
-    const stored = Number.parseInt(localStorage.getItem(RATE_LIMIT.storageKey) || "", 10);
-    if (!Number.isFinite(stored)) return { active: false, timeLeftMs: 0 };
-    const timeLeftMs = RATE_LIMIT.cooldownMs - (Date.now() - stored);
-    return { active: timeLeftMs > 0, timeLeftMs: Math.max(timeLeftMs, 0) };
-  } catch {
-    return { active: false, timeLeftMs: 0 };
-  }
-}
-
-function setRateLimitTimestamp() {
-  try {
-    localStorage.setItem(RATE_LIMIT.storageKey, String(Date.now()));
-  } catch { /* Storage unavailable — no-op */ }
-}
-
-function getValue(id) {
-  return document.getElementById(id)?.value?.trim() ?? "";
+function value(id) {
+  return document.getElementById(id)?.value?.trim() || '';
 }
