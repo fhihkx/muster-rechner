@@ -1,9 +1,9 @@
 import { formatCurrency } from "./calculator.js";
 
 const EMAILJS_CONFIG = Object.freeze({
-  publicKey: "HIER_DEIN_PUBLIC_KEY_EINFUEGEN",
-  serviceId: "HIER_DEINE_SERVICE_ID_EINFUEGEN",
-  templateId: "HIER_DEINE_TEMPLATE_ID_EINFUEGEN",
+  publicKey: "y0ANsvoTYHNRXCf5R",
+  serviceId: "service_lg831md",
+  templateId: "template_62lwu6b",
 });
 
 let initialized = false;
