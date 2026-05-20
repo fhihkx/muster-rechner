@@ -53,10 +53,8 @@ export function switchTab(tabId) {
     view.classList.remove("active-view");
     view.classList.add("hidden-view");
     view.style.zIndex = "0";
-    view.hidden = true;
   });
 
-  activeView.hidden = false;
   activeView.classList.remove("hidden-view");
   activeView.style.zIndex = "10";
 
