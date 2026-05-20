@@ -16,7 +16,7 @@ function init() {
     return false;
   }
 
-  if (EMAILJS_PUBLIC_KEY === "YOUR_PUBLIC_KEY") {
+  if (EMAILJS_PUBLIC_KEY === "y0ANsvoTYHNRXCf5R") {
     console.warn("[email] Bitte PUBLIC_KEY, SERVICE_ID und TEMPLATE_ID in email.js eintragen.");
     return false;
   }
