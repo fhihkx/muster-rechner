@@ -34,34 +34,28 @@ export function adjustContainerHeight(tabId = null) {
 }
 
 export function switchTab(tabId) {
-  const activeTab = getElement(`tab-${tabId}`);
-  const activeView = getElement(`view-${tabId}`);
-
-  if (!activeTab || !activeView) return;
-
-  getAll(".tab-btn").forEach((button) => {
-    const isActive = button === activeTab;
-
-    button.classList.toggle("active", isActive);
-    button.setAttribute("aria-selected", String(isActive));
-    button.tabIndex = isActive ? 0 : -1;
+  // ── Tab buttons ─────────────────────────────────────────
+  getAll(".tab-btn").forEach((btn) => {
+    const isActive = btn.dataset.tab === tabId;
+    btn.classList.toggle("active", isActive);
+    btn.setAttribute("aria-selected", String(isActive));
+    btn.tabIndex = isActive ? 0 : -1;
   });
 
+  // ── Views — both classes toggled atomically ──────────────
+  // Splitting "remove hidden-view" and "add active-view" across
+  // a requestAnimationFrame creates a one-frame intermediate state
+  // where the view has neither class (position:static, opacity:1) —
+  // causing a visual flash and breaking adjustContainerHeight.
   getAll(".view-content").forEach((view) => {
-    if (view === activeView) return;
-
-    view.classList.remove("active-view");
-    view.classList.add("hidden-view");
-    view.style.zIndex = "0";
+    const isActive = view.id === `view-${tabId}`;
+    view.classList.toggle("active-view",  isActive);
+    view.classList.toggle("hidden-view", !isActive);
+    view.style.zIndex = isActive ? "10" : "0";
   });
 
-  activeView.classList.remove("hidden-view");
-  activeView.style.zIndex = "10";
-
-  requestAnimationFrame(() => {
-    activeView.classList.add("active-view");
-    adjustContainerHeight(tabId);
-  });
+  // Update container height after classes are applied
+  requestAnimationFrame(() => adjustContainerHeight(tabId));
 }
 
 export function initTabKeyboardNavigation() {
