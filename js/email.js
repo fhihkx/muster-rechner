@@ -8,146 +8,128 @@ const EMAILJS_CONFIG = Object.freeze({
 
 let initialized = false;
 
-function getEmailJs() {
-  return window.emailjs ?? null;
-}
-
-function assertEmailConfig() {
-  const missing = Object.entries(EMAILJS_CONFIG)
-    .filter(([, value]) => !value || String(value).startsWith("YOUR_"))
-    .map(([key]) => key);
-
-  if (missing.length > 0) {
-    throw new Error(`EmailJS ist nicht vollständig konfiguriert: ${missing.join(", ")}.`);
-  }
-}
-
-export function canSendEmail() {
-  const emailjs = getEmailJs();
-  return Boolean(emailjs && typeof emailjs.init === "function" && typeof emailjs.send === "function");
-}
-
-export function initEmailJs() {
-  assertEmailConfig();
-
+export function initEmailService() {
   if (initialized) return true;
 
-  const emailjs = getEmailJs();
-  if (!emailjs) {
-    throw new Error("EmailJS SDK wurde nicht geladen. Prüfen Sie CDN, CSP und Netzwerkzugriff.");
+  if (!window.emailjs) {
+    console.warn("[EmailJS] SDK wurde nicht geladen.");
+    return false;
   }
 
-  if (typeof emailjs.init !== "function" || typeof emailjs.send !== "function") {
-    throw new Error("EmailJS SDK ist geladen, aber nicht in der erwarteten Browser-Version verfügbar.");
+  if (hasPlaceholder(EMAILJS_CONFIG.publicKey)) {
+    console.warn("[EmailJS] Public Key fehlt oder ist noch ein Platzhalter.");
+    return false;
   }
 
-  emailjs.init({ publicKey: EMAILJS_CONFIG.publicKey });
+  window.emailjs.init({
+    publicKey: EMAILJS_CONFIG.publicKey,
+  });
+
   initialized = true;
   return true;
 }
 
-function buildTemplateParams({ customer, calculation, filename, datum, uhrzeit }) {
-  const financingType = String(customer.financingType ?? "");
-  const salutation = String(customer.salutation ?? "");
-  const firstName = String(customer.firstName ?? "");
-  const lastName = String(customer.lastName ?? "");
-  const fullName = `${firstName} ${lastName}`.trim();
-  const company = String(customer.company ?? "");
-  const street = String(customer.street ?? "");
-  const postalCode = String(customer.postalCode ?? "");
-  const city = String(customer.city ?? "");
-  const address = `${street}, ${postalCode} ${city}`.trim();
+export async function sendOfferEmail({ customer, calculation }) {
+  if (!customer || !calculation?.valid) {
+    throw new Error("Ungültige Daten für den E-Mail-Versand.");
+  }
 
-  const priceText = `${formatCurrency(calculation.price)} €`;
-  const residualText = `${formatCurrency(calculation.residualValue)} €`;
-  const rateText = `${formatCurrency(calculation.rate)} €`;
-  const durationText = `${calculation.duration} Monate`;
-  const factorText = Number.isFinite(Number(calculation.factor))
+  if (hasPlaceholder(EMAILJS_CONFIG.serviceId)) {
+    throw new Error("EmailJS Service ID fehlt.");
+  }
+
+  if (hasPlaceholder(EMAILJS_CONFIG.templateId)) {
+    throw new Error("EmailJS Template ID fehlt.");
+  }
+
+  if (!initEmailService()) {
+    throw new Error("EmailJS konnte nicht initialisiert werden.");
+  }
+
+  const templateParams = buildTemplateParams(customer, calculation);
+
+  return window.emailjs.send(
+    EMAILJS_CONFIG.serviceId,
+    EMAILJS_CONFIG.templateId,
+    templateParams
+  );
+}
+
+function buildTemplateParams(customer, calculation) {
+  const price = `${formatCurrency(calculation.price)} €`;
+  const rate = `${formatCurrency(calculation.rate)} €`;
+  const residualValue = `${formatCurrency(calculation.residualValue)} €`;
+  const duration = `${calculation.duration} Monate`;
+  const factor = Number.isFinite(Number(calculation.factor))
     ? `${String(calculation.factor).replace(".", ",")} %`
     : "-";
 
-  const subjectText = `Neues Angebot: ${financingType} – ${company}`;
+  const fullName = `${customer.firstName} ${customer.lastName}`.trim();
+  const address = `${customer.street}, ${customer.postalCode} ${customer.city}`;
+  const timestamp = new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date());
 
   return {
-    // German variables used by the current EmailJS template
-    subject: subjectText,
-    betreff: subjectText,
-    datum: String(datum ?? ""),
-    uhrzeit: String(uhrzeit ?? ""),
-    finanzierungsart: financingType,
-    anrede: salutation,
-    vorname: firstName,
-    nachname: lastName,
     name: fullName,
-    firma: company,
-    strasse: street,
-    plz: postalCode,
-    ort: city,
-    plz_ort: `${postalCode} ${city}`.trim(),
-    adresse: address,
-    preis: priceText,
-    anschaffungspreis: priceText,
-    laufzeit: durationText,
-    restwert: residualText,
-    leasingfaktor: factorText,
-    faktor: factorText,
-    rate: rateText,
-    monatliche_rate: rateText,
-    dateiname: String(filename ?? ""),
+    from_name: fullName,
+    to_name: "Musterfirma GmbH",
 
-    // Common EmailJS aliases
-    title: subjectText,
-    message: `${subjectText}\n${fullName}\n${company}\n${address}\nPreis: ${priceText}\nRate: ${rateText}`,
-    financing_type: financingType,
-    salutation,
-    first_name: firstName,
-    last_name: lastName,
+    anrede: customer.salutation,
+    vorname: customer.firstName,
+    nachname: customer.lastName,
+    name_vollstaendig: fullName,
+    firma: customer.company,
+    strasse: customer.street,
+    plz: customer.postalCode,
+    ort: customer.city,
+    adresse: address,
+
+    salutation: customer.salutation,
+    first_name: customer.firstName,
+    last_name: customer.lastName,
     full_name: fullName,
-    company,
-    street,
-    postal_code: postalCode,
-    city,
+    company: customer.company,
+    street: customer.street,
+    postal_code: customer.postalCode,
+    city: customer.city,
     address,
-    price: priceText,
-    duration: durationText,
-    residual_value: residualText,
-    factor: factorText,
-    monthly_rate: rateText,
-    filename: String(filename ?? ""),
-    generated_date: String(datum ?? ""),
-    generated_time: String(uhrzeit ?? ""),
-    reply_to: "noreply@example.com",
-    from_name: fullName || company || "Finanzierungsrechner",
+
+    finanzierungsart: customer.financingType,
+    anschaffungspreis: price,
+    preis: price,
+    price,
+
+    laufzeit: duration,
+    duration,
+
+    restwert: residualValue,
+    residual_value: residualValue,
+
+    leasingfaktor: factor,
+    leasing_factor: factor,
+
+    monatliche_rate: rate,
+    monthly_rate: rate,
+    rate,
+
+    price_raw: calculation.price,
+    rate_raw: calculation.rate,
+    residual_value_raw: calculation.residualValue,
+    duration_raw: calculation.duration,
+    factor_raw: calculation.factor,
+
+    timestamp,
+    page_url: window.location.href,
   };
 }
 
-export async function sendTrackingEmail(payload) {
-  initEmailJs();
-
-  const { customer, calculation } = payload ?? {};
-  if (!customer || !calculation?.valid) {
-    throw new Error("Mailversand abgebrochen: Kundendaten oder Berechnung sind ungültig.");
-  }
-
-  const templateParams = buildTemplateParams(payload);
-  console.info("[EmailJS] Sending notification with template params:", templateParams);
-
-  try {
-    const response = await getEmailJs().send(
-      EMAILJS_CONFIG.serviceId,
-      EMAILJS_CONFIG.templateId,
-      templateParams
-    );
-
-    console.info("[EmailJS] Send response:", response);
-
-    if (!response || response.status < 200 || response.status >= 300) {
-      throw new Error(`${response?.status ?? "?"} ${response?.text ?? ""}`.trim());
-    }
-
-    return response;
-  } catch (error) {
-    const text = error?.text || error?.message || String(error);
-    throw new Error(`EmailJS konnte die Mail nicht senden: ${text}`);
-  }
+function hasPlaceholder(value) {
+  return (
+    !value ||
+    typeof value !== "string" ||
+    value.includes("HIER_") ||
+    value.includes("DEIN_")
+  );
 }
